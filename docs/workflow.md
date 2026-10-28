@@ -19,7 +19,7 @@ Subagent definitions live in [`.claude/agents/`](../.claude/agents/).
 
 ## The task loop
 
-The maintainer starts a task with: **"Run task T-x.y"**. The orchestrator then:
+The maintainer starts a task with: **"Run task T-x.y"** (or several, see *Running a group of tasks*). The orchestrator then:
 
 1. **Prepare.** Check that the task's dependencies are done. Create a branch `task/t<phase>-<n>-<short-slug>` (e.g. `task/t1-3-pomodoro-state-machine`) from `main`. Mark the task `[~]` in the roadmap.
 2. **Tests first.** Invoke `qa-engineer` in `write-tests` mode. Record the commit hash of the acceptance tests. If QA reports ambiguous criteria → stop and ask the maintainer.
@@ -38,6 +38,18 @@ Reports to the maintainer are written in **Spanish**. Everything committed to th
 Until **T-0.16** creates the `justfile`, "run `just check`" means running whichever commands from the *Commands* section of `AGENTS.md` already apply to the code that exists.
 
 Some tasks (mostly in F0: tooling, configuration, CI) have no product behavior to test. For those, `qa-engineer` skips `write-tests` and instead lists in its validation the exact commands that prove the acceptance criteria (for example, `cargo build --workspace` succeeds), runs them, and reports their output. The rest of the loop is unchanged.
+
+### Running a group of tasks
+
+The maintainer can also start several consecutive tasks at once, usually one group from the roadmap: **"Run tasks T-x.y to T-x.z"**. The orchestrator then runs the loop for each task in roadmap order, with these changes:
+
+- Each task gets its own branch, created from the previous task's branch instead of `main`, so it builds on work that is not merged yet.
+- Step 7 does not stop: the orchestrator records the task's report and moves on to the next task.
+- The orchestrator still stops early whenever a single task would: ambiguous criteria, a wrong test, the retry limit, or a decision only the maintainer can make. Actions outside the repository, such as changing GitHub settings, are confirmed with the maintainer before they are taken.
+- After the last task, the orchestrator sends **one report** with a section per task, each following the template below, and stops.
+- On approval, step 8 is done for each task in order, giving one squash commit per task on `main`. If the maintainer rejects a task, the tasks before it can still be merged; the rejected task goes back to step 3, and the tasks after it are rebased onto the fixed branch and checked again.
+
+Tasks are still run one at a time; this changes when the maintainer approves, not how many loops run in parallel (see *Working in parallel*).
 
 ## Acceptance tests are protected
 
