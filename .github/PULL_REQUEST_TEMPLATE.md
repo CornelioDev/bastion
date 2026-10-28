@@ -13,7 +13,7 @@ Roadmap task: <!-- e.g. T-1.3, or "none" -->
 - [ ] PR title follows [Conventional Commits](https://www.conventionalcommits.org)
 - [ ] Commits are signed off (`git commit -s`)
 - [ ] Tests added or updated, and all checks pass locally
-- [ ] New files have an SPDX license header
+- [ ] New source files have an SPDX license header
 - [ ] User-facing strings go through i18n (`en` and `es` updated)
 - [ ] Docs, `docs/roadmap.md` and `CHANGELOG.md` updated where relevant
 - [ ] An ADR was added if this changes the architecture
