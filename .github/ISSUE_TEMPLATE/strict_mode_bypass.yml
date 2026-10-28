@@ -1,0 +1,32 @@
+name: Strict mode bypass
+description: A way to end or weaken a strict session early on your own machine.
+labels: ["strict-mode"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bypasses on your own machine are feature limitations and are discussed in public.
+        If the issue lets a **less-privileged process gain privileges** or affects other users, it is a security vulnerability: report it privately (see SECURITY.md).
+  - type: textarea
+    id: method
+    attributes:
+      label: How the bypass works
+    validations:
+      required: true
+  - type: dropdown
+    id: privileges
+    attributes:
+      label: Privileges required
+      options: ["Standard user", "Administrator", "Physical access / reboot into another OS"]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Bastion version
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Possible defense (optional)

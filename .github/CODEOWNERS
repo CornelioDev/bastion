@@ -1,0 +1,8 @@
+# Default owner for everything in the repository.
+*                         @CornelioDev
+
+# Security-sensitive areas always need a maintainer review.
+/crates/bastion-service/  @CornelioDev
+/crates/bastion-ipc/      @CornelioDev
+/crates/bastion-nmh/      @CornelioDev
+/installer/               @CornelioDev
