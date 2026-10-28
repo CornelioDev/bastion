@@ -1,0 +1,100 @@
+# Git attributes: how Git stores, checks out and diffs files.
+#
+# Text files are stored with LF and checked out with LF on every OS, overriding
+# a local core.autocrlf, so the working tree matches what rustfmt
+# (newline_style in rustfmt.toml), Prettier and .editorconfig expect. After
+# changing the rules below, run `git add --renormalize .` and commit the
+# result.
+
+# Files Git detects as text: LF in the repository and in the working tree.
+# Cargo.lock, pnpm-lock.yaml and SVG files are text too.
+* text=auto eol=lf
+
+# Rust sources are always text, whatever Git's detection says.
+*.rs text eol=lf
+
+# The one exception: cmd.exe can fail to find `goto` and `call` labels in a
+# batch file with LF line endings, so batch files are checked out with CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Source and configuration files are always diffed as text. Git treats any
+# file containing a NUL byte as binary, so `git diff` would print only "Binary
+# files differ" and hide a change that still ships (rustc accepts a NUL inside
+# a comment). Plain `diff` turns that detection off; a named driver such as
+# `diff=rust` does not. It is not set on `*`, which would print real binary
+# files as text.
+
+# Code, including SVG (it can carry scripts), SQL migrations, scripts and
+# Windows application manifests (they request privileges).
+*.rs diff
+*.ts diff
+*.tsx diff
+*.mts diff
+*.cts diff
+*.js diff
+*.mjs diff
+*.cjs diff
+*.vue diff
+*.html diff
+*.css diff
+*.svg diff
+*.sql diff
+*.ps1 diff
+*.bat diff
+*.cmd diff
+*.manifest diff
+
+# Configuration, lockfiles, the WiX installer sources, licenses, and Markdown
+# (agents follow the docs as instructions).
+*.json diff
+*.jsonc diff
+*.toml diff
+*.yml diff
+*.yaml diff
+*.md diff
+*.wxs diff
+*.wxi diff
+*.wxl diff
+*.wixproj diff
+Cargo.lock diff
+justfile diff
+.npmrc diff
+.editorconfig diff
+.gitattributes diff
+.gitignore diff
+CODEOWNERS diff
+LICENSE-* diff
+
+# Binary files: never converted, diffed or merged as text. Git usually detects
+# them on its own; listing them guarantees that a line-ending conversion can
+# never corrupt one.
+
+# Images and icons: app, tray and extension icons, mockups, installer bitmaps.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.bmp binary
+*.ico binary
+*.icns binary
+
+# Fonts: Geist and Geist Mono are bundled with the app.
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+
+# Sounds, documents and archives.
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.pdf binary
+*.zip binary
+
+# Windows and installer binaries (build output, normally ignored).
+*.exe binary
+*.dll binary
+*.msi binary
+*.cab binary

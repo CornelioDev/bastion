@@ -1,0 +1,104 @@
+# Files Git does not track. A pattern starting with `/` (or with a `/` in the
+# middle) only matches from the repository root; one without matches at any
+# depth. A trailing `/` matches directories only.
+#
+# Output directories are anchored to where the tools write them. A bare
+# `target/`, `dist/` or `coverage/` would also ignore any source directory
+# with that name, such as a module for the domain's `Target` type, and on
+# Windows (case-insensitive) `Dist/` or `Coverage/` too.
+#
+# Cargo.lock and pnpm-lock.yaml are committed on purpose: they pin the exact
+# dependency versions that were tested and reviewed.
+
+# --- Build output ------------------------------------------------------------
+
+# Cargo, for the workspace and for the Tauri crate.
+/target/
+/apps/desktop/src-tauri/target/
+
+# Vite builds of the desktop frontend and the extension.
+/apps/desktop/dist/
+/extension/dist/
+
+# Tauri: schemas generated for capability auto-completion. The rest of gen/
+# (Android and iOS projects) is source and is committed.
+/apps/desktop/src-tauri/gen/schemas/
+
+# WiX: the installer project builds into bin/ and obj/. Anchored to installer/
+# because Cargo's src/bin/ directories are source.
+/installer/**/bin/
+/installer/**/obj/
+*.msi
+*.wixpdb
+
+# A packed browser extension.
+*.crx
+
+# --- Dependencies ------------------------------------------------------------
+
+node_modules/
+
+# --- Coverage ----------------------------------------------------------------
+
+# Vitest reports (in each project's own directory), cargo-llvm-cov reports
+# written to the repository root (its HTML report goes to target/), and raw
+# LLVM profiling data.
+/coverage/
+/apps/desktop/coverage/
+/extension/coverage/
+lcov.info
+*.profraw
+*.profdata
+
+# --- Logs and crash dumps ----------------------------------------------------
+
+*.log
+*.dmp
+
+# --- Local secrets -----------------------------------------------------------
+
+# Environment files. Commit a `.env.example` with placeholder values instead.
+.env
+.env.*
+!.env.example
+
+# Private keys and certificates: code signing (.pfx, .p12, and .pvk for the
+# legacy Authenticode format), the key Chrome writes when it packs an
+# extension (.pem), the app updater's signing key (.key).
+*.pfx
+*.p12
+*.pvk
+*.pem
+*.key
+
+# Local SQLite databases and their -wal, -shm and -journal sidecar files. A
+# development database holds personal history and blocklists. A test fixture
+# that really needs one must be un-ignored explicitly with `!`.
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+
+# --- Editors and tools -------------------------------------------------------
+
+# VS Code: only the recommended extensions are shared.
+.vscode/*
+!.vscode/extensions.json
+
+# JetBrains IDEs, Visual Studio (WiX projects), Vim swap files.
+.idea/
+.vs/
+*.swp
+
+# Claude Code: personal local settings and instructions. The shared agents in
+# .claude/agents/ and CLAUDE.md are committed.
+.claude/settings.local.json
+CLAUDE.local.md
+
+# --- Operating systems -------------------------------------------------------
+
+Thumbs.db
+desktop.ini
+.DS_Store

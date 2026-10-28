@@ -1,0 +1,32 @@
+# EditorConfig (https://editorconfig.org): tells editors which basic
+# formatting to use as you type. rustfmt and Prettier have the final say on
+# the files they format; these settings match theirs so the editor never
+# fights them, and cover the files no formatter touches.
+
+# Do not look for .editorconfig files in parent directories.
+root = true
+
+# Every file: UTF-8, LF line endings (as .gitattributes stores them), a final
+# newline, and no trailing whitespace. Markdown included: write a hard line
+# break as a trailing backslash, which stays visible, not as two trailing
+# spaces. Indentation is two spaces, as Prettier uses for TypeScript, Vue,
+# JSON, YAML, CSS, HTML and Markdown.
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Rust: four spaces, as rustfmt uses.
+[*.rs]
+indent_size = 4
+
+# TOML: four spaces, as in the existing Cargo.toml and clippy.toml.
+[*.toml]
+indent_size = 4
+
+# Windows batch files keep CRLF (see .gitattributes).
+[*.{bat,cmd}]
+end_of_line = crlf

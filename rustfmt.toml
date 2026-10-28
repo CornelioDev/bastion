@@ -1,0 +1,16 @@
+# rustfmt settings for the whole repository. Everything not set here keeps
+# rustfmt's defaults, which follow the Rust Style Guide. Only use options that
+# are stable on the toolchain pinned in rust-toolchain.toml: stable rustfmt
+# ignores unstable ones and prints a warning.
+
+# Edition used to parse the code; rustfmt also takes the style edition (how
+# the code is formatted) from it. `cargo fmt` already passes the edition from
+# Cargo.toml, but rustfmt run on its own (by some editors and git hooks) would
+# fall back to 2015, which cannot parse `async fn` and formats differently.
+# Keep in sync with `edition` in the root Cargo.toml.
+edition = "2024"
+
+# Always write LF line endings, as .gitattributes stores and checks out every
+# text file, so `cargo fmt --check` also catches a file an editor saved with
+# CRLF. The default, "Auto", would keep whatever line endings a file has.
+newline_style = "Unix"
