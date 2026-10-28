@@ -92,6 +92,7 @@ MVP phases: **F0 → F6**. Later: **F7 → F9**.
   - Depends on: T-1.1
 - [ ] **T-2.3** Protocol in `bastion-ipc`: versioned requests, responses, events, typed errors; size limits.
   - Acceptance: serialization tests and version-compatibility tests.
+  - Also: extend `disallowed-methods` in `clippy.toml` with the panicking methods the framing code could reach and the current list misses: `Vec::split_off`, `String::split_off`, `core::iter::Sum::sum`, `core::iter::Product::product`, plus those of any buffer crate added here (e.g. `bytes`: `split_to`, `split_off`, `advance`, `get_u32*`).
 - [ ] **T-2.4** Named-pipe server `\\.\pipe\bastion` with explicit DACL and `PIPE_REJECT_REMOTE_CLIENTS`; multiple clients; event subscriptions.
   - Depends on: T-2.3
 - [ ] **T-2.5** Service engine: wires `bastion-core`, applies requests, emits events, persists a snapshot on every transition.
