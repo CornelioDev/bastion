@@ -3,9 +3,9 @@
 ## Current status
 
 - **Active phase:** F0 — Foundations
-- **Next task:** T-0.1
+- **Next task:** T-0.2
 - **Last updated:** 2026-10-28
-- **Notes:** Planning complete. Stack: Rust service + Tauri 2 + Vue 3 + shadcn-vue. Dual-licensed MIT OR Apache-2.0. Every task runs through the loop in `docs/workflow.md`.
+- **Notes:** Planning complete. Stack: Rust service + Tauri 2 + Vue 3 + shadcn-vue. Dual-licensed MIT OR Apache-2.0. Every task runs through the loop in `docs/workflow.md`. T-0.1 done (Rust pinned to 1.99.1, MSRV 1.99). Open before F2: ADR on isolating `unsafe` code ([#1](https://github.com/CornelioDev/bastion/issues/1)).
 
 Legend: `[ ]` todo · `[~]` in progress / blocked · `[x]` done. Each phase maps to a GitHub milestone; each task can be mirrored as an issue titled `T-x.y: …`.
 
@@ -25,7 +25,7 @@ MVP phases: **F0 → F6**. Later: **F7 → F9**.
 
 ### Repository and community
 
-- [ ] **T-0.1** Initialize the Cargo workspace with empty crates `bastion-core`, `bastion-ipc`, `bastion-service`, `bastion-nmh`; set `rust-version` (MSRV), `edition = "2024"`, `license = "MIT OR Apache-2.0"`, and `[workspace.lints]`; add `rust-toolchain.toml`.
+- [x] **T-0.1** Initialize the Cargo workspace with empty crates `bastion-core`, `bastion-ipc`, `bastion-service`, `bastion-nmh`; set `rust-version` (MSRV), `edition = "2024"`, `license = "MIT OR Apache-2.0"`, and `[workspace.lints]`; add `rust-toolchain.toml`.
   - Acceptance: `cargo build --workspace` and `cargo test --workspace` pass.
 - [ ] **T-0.2** Add `rustfmt.toml`, `.editorconfig`, `.gitattributes` (LF, `*.rs text eol=lf`), `.gitignore`, and `.vscode/extensions.json` (rust-analyzer, Vue - Official, ESLint, Prettier, Tailwind CSS IntelliSense).
 - [ ] **T-0.3** Add `deny.toml` for `cargo-deny`: allowed licenses compatible with MIT/Apache-2.0, advisories, banned duplicates.

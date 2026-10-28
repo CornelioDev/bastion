@@ -1,0 +1,87 @@
+# Cargo workspace for Bastion's Rust crates. AGENTS.md ("Repository layout")
+# and docs/architecture.md describe what each crate does.
+
+[workspace]
+members = [
+    "crates/bastion-core",
+    "crates/bastion-ipc",
+    "crates/bastion-service",
+    "crates/bastion-nmh",
+]
+# A workspace root without a [package] has no edition, so the resolver is set
+# explicitly. Resolver 3 (the edition 2024 default) prefers dependency versions
+# that support our `rust-version`.
+resolver = "3"
+
+# Metadata shared by every crate, inherited with `<field>.workspace = true`.
+[workspace.package]
+# Nothing is released yet. The first release is v0.1.0-beta.1 (set by the
+# release tooling); starting at 0.1.0 would make it look like a downgrade.
+version = "0.0.0"
+edition = "2024"
+# Minimum supported Rust version: the minor version of the toolchain pinned in
+# rust-toolchain.toml, which is the only version CI tests. Bump both together.
+rust-version = "1.99"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/CornelioDev/bastion"
+# Bastion ships as an application, not as crates on crates.io.
+publish = false
+
+[profile.release]
+# Integer overflow panics, as in debug builds, instead of silently wrapping:
+# a wrapped value in, say, the remaining-time calculation could shorten a
+# strict session.
+overflow-checks = true
+# Unwinding (the default, stated on purpose) lets a failing task, such as one
+# client connection, end on its own; `panic = "abort"` would take down the
+# whole service.
+panic = "unwind"
+
+# Lints shared by every crate, inherited with `[lints] workspace = true`.
+# Most are warnings so that local builds keep working while you iterate;
+# `just check` runs clippy with `-D warnings`, which turns them into errors.
+# Silencing one needs a reason: `#[allow(lint_name, reason = "...")]`.
+[workspace.lints.rust]
+# Public items are documented (AGENTS.md, "Conventions").
+missing_docs = "warn"
+# Public types implement `Debug` (Rust API Guidelines, C-DEBUG).
+missing_debug_implementations = "warn"
+# `unsafe` is only allowed in bastion-service/src/sys/, which opts in with an
+# `#[allow(unsafe_code, reason = "...")]` on that module (AGENTS.md, "Hard
+# rules"). It is an error rather than a warning so that even `cargo build`
+# rejects it. bastion-core, bastion-ipc and bastion-nmh go further with
+# `#![forbid(unsafe_code)]`, which no `#[allow]` can override.
+unsafe_code = "deny"
+# Idioms such as writing `Formatter<'_>` so that borrows are visible.
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[workspace.lints.clippy]
+# No `unwrap()` / `expect()` outside tests (AGENTS.md, "Conventions").
+# clippy.toml allows them in tests.
+unwrap_used = "warn"
+expect_used = "warn"
+# No other operations that can panic, overflow, truncate or end the process.
+# A panic in the service is a denial of service (docs/threat-model.md), and
+# bastion-core and bastion-ipc run inside it. Use `Result`, `.get()`,
+# `checked_*` / `saturating_*` arithmetic and `try_from` instead.
+# clippy.toml relaxes `panic` and `indexing_slicing` in tests.
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+unreachable = "warn"
+exit = "warn"
+indexing_slicing = "warn"
+string_slice = "warn"
+arithmetic_side_effects = "warn"
+cast_possible_truncation = "warn"
+# Every `unsafe` block contains one operation and a `// SAFETY:` comment.
+undocumented_unsafe_blocks = "warn"
+multiple_unsafe_ops_per_block = "warn"
+# Public functions document when they fail or panic (Rust API Guidelines,
+# C-FAILURE).
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+# Every silenced lint says why.
+allow_attributes_without_reason = "warn"
+# No leftover debugging output.
+dbg_macro = "warn"

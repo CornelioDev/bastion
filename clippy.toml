@@ -1,0 +1,24 @@
+# Clippy settings for the whole workspace. Which lints are enabled is decided
+# in [workspace.lints] in the root Cargo.toml; this file only tunes them.
+
+# A panic is how a test fails, so `unwrap()`, `expect()`, `panic!` and
+# indexing are fine inside `#[test]` functions and `#[cfg(test)]` modules.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-indexing-slicing-in-tests = true
+
+# Methods that can panic but that the lints in Cargo.toml do not catch.
+# `split_at` panics when a frame from a client is shorter than its length
+# prefix claims, and `sum` / `product` panic on overflow in every build (see
+# `overflow-checks` in Cargo.toml). This also applies to tests: a test that
+# really needs one of them can opt out locally with
+# `#[expect(clippy::disallowed_methods, reason = "...")]`.
+disallowed-methods = [
+    { path = "slice::split_at", reason = "panics if out of range; use `split_at_checked`" },
+    { path = "slice::split_at_mut", reason = "panics if out of range; use `split_at_mut_checked`" },
+    { path = "str::split_at", reason = "panics if out of range or not on a char boundary; use `split_at_checked`" },
+    { path = "str::split_at_mut", reason = "panics if out of range or not on a char boundary; use `split_at_mut_checked`" },
+    { path = "core::iter::Iterator::sum", reason = "panics on overflow; use `try_fold` with `checked_add`" },
+    { path = "core::iter::Iterator::product", reason = "panics on overflow; use `try_fold` with `checked_mul`" },
+]

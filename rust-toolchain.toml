@@ -1,0 +1,11 @@
+# Pins the Rust toolchain so that contributors and CI compile, format and lint
+# with exactly the same rustc, rustfmt and clippy. rustup selects it
+# automatically inside the repository; run `rustup toolchain install` here once
+# to download it.
+#
+# To upgrade: change `channel`, set `rust-version` in the root Cargo.toml to
+# the same minor version, and fix any new clippy warnings in the same change.
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"
