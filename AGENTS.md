@@ -53,12 +53,27 @@ bastion/
 | Language | English for code, comments, commits, docs. UI is localized. |
 | Commits | [Conventional Commits](https://www.conventionalcommits.org) + DCO sign-off |
 | Versioning | [SemVer](https://semver.org); changelog per [Keep a Changelog](https://keepachangelog.com) |
-| Rust | [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/); `rustfmt`; `clippy` with workspace lints; `thiserror` in libraries, `anyhow` only in binaries; no `unwrap()`/`expect()` outside tests; public items documented (`missing_docs` warns) |
+| Rust | [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/); `rustfmt`; `clippy` with workspace lints; `thiserror` in libraries, `anyhow` only in binaries; no `unwrap()`/`expect()` or other panicking operations outside tests (enforced by the workspace lints in `Cargo.toml` and `clippy.toml`); public items documented (`missing_docs` warns) |
 | Vue | [Vue style guide](https://vuejs.org/style-guide/) priority A–B; Composition API with `<script setup lang="ts">`; `PascalCase` single-file components; composables named `useXxx` in `src/composables/` |
 | TypeScript | `strict: true`, no `any` without a justifying comment |
 | Formatting | `rustfmt`, Prettier (TS/Vue/JSON/MD), `.editorconfig` |
-| Tests | Rust: `cargo test` (unit next to code, integration in `tests/`). Frontend: Vitest + Vue Test Utils |
+| Tests | Rust: `cargo test` (unit next to code, integration in `tests/`; see *Writing Rust tests* below). Frontend: Vitest + Vue Test Utils |
 | Accessibility | WCAG 2.2 AA: keyboard reachable, visible focus, labels on all controls |
+
+### Writing Rust tests
+
+The workspace lints that keep panics out of the service also apply to test code, with a few exemptions. To keep `clippy -D warnings` passing:
+
+- Integration-test files (including `crates/<crate>/tests/acceptance_t<phase>_<n>.rs`) start with the SPDX header, then a `//!` doc comment (acceptance tests list which criterion each test covers), then `#![cfg(test)]`. The `//!` satisfies `missing_docs`; `#![cfg(test)]` lets helper functions in the file use `unwrap`, `expect`, `panic!` and indexing, as `#[test]` functions and `#[cfg(test)]` modules already can.
+- Don't mark items `pub` in test files; `pub` items at a test crate's root trigger `missing_docs` and `missing_debug_implementations`.
+- These lints apply to all test code too; use the alternative:
+  - `unreachable!` → `panic!("…")`; never commit `todo!` or `unimplemented!`.
+  - `&s[a..b]` → `s.get(a..b).expect("…")`.
+  - Narrowing `x as u32` → `u32::try_from(x).expect("…")`.
+  - `split_at` / `split_at_mut` → `split_at_checked(n).expect("…")`.
+  - `Iterator::sum` / `product` → `try_fold(0, |acc, &x| acc.checked_add(x)).expect("…")`, or a `for` loop with `+=` inside a `#[test]` function. A plain `fold(0, |acc, x| acc + x)` trips `clippy::unnecessary_fold`, which suggests the banned `sum`.
+- Arithmetic (`+`, `-`, `*`, `+=`, also on `Duration`) is fine inside `#[test]` functions and closures within them. Helper functions, even in `#[cfg(test)]` code, use `checked_*` plus `expect("…")`. Literal-only arithmetic such as `25 * 60` is always fine.
+- If a test genuinely needs a linted construct, opt out at the narrowest scope with `#[expect(<lint>, reason = "…")]` on the statement or test function, never `#[allow]`. The reason is mandatory, and clippy reports the `expect` once it is no longer needed.
 
 ## Commands
 
