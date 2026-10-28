@@ -1,0 +1,117 @@
+# cargo-deny configuration: checks every Rust dependency's license, known
+# security advisories, duplicate versions and where it was downloaded from.
+# Run it with `cargo deny check`; `just check` (T-0.16) and CI (T-0.13) are
+# meant to run it on every change once they exist.
+# Reference: https://embarkstudios.github.io/cargo-deny/
+#
+# The service runs as SYSTEM, so a compromised or vulnerable crate inside it
+# is a compromised machine. The desktop app and the native messaging host run
+# as the user, but they handle untrusted input and talk to the service
+# (docs/threat-model.md). The same strict gate therefore applies to all of
+# them: anything not explicitly allowed fails the check. Loosening a setting
+# needs a reason written next to it.
+
+[graph]
+# Only check the dependencies compiled for the platforms we build. The only
+# target we build today is x64 Windows. Without this list cargo-deny would
+# also check crates that are only used on Linux or macOS (for example the GTK
+# stack behind Tauri), which never reach a user's machine but could still
+# fail the duplicate and advisory checks. Add a target here when we start
+# building for it, such as "aarch64-pc-windows-msvc" for Windows on Arm.
+targets = ["x86_64-pc-windows-msvc"]
+
+[advisories]
+# Advisories come from the RustSec database (https://rustsec.org), which
+# cargo-deny fetches on each run. A vulnerability is always an error. The two
+# settings below make unsound and unmaintained crates errors too, whether we
+# depend on them directly or through another crate (`"all"`). By default
+# cargo-deny only reports unsound crates that one of our own crates depends
+# on directly.
+# Unsound: a crate's safe API can cause undefined behavior, such as memory
+# corruption, even when used correctly.
+unsound = "all"
+# Unmaintained: its maintainers have announced it is no longer maintained, so
+# it will not get security fixes.
+unmaintained = "all"
+# A yanked version was withdrawn by its authors, usually because it is broken
+# or insecure; `cargo update` usually moves to a replacement.
+yanked = "deny"
+# No advisories are ignored. If one has to be, add it here with the advisory
+# ID and a `reason` explaining why it does not affect Bastion.
+ignore = []
+
+[licenses]
+# Bastion is distributed under MIT OR Apache-2.0, so every dependency must use
+# a permissive license that lets us ship it inside a binary under those terms.
+# Copyleft licenses (GPL, LGPL, AGPL, MPL, EUPL and others) are not listed and
+# therefore rejected. A crate with several licenses joined by OR passes if any
+# one of them is here; with AND, all of them must be.
+# Identifiers are SPDX: https://spdx.org/licenses/
+allow = [
+    "MIT",
+    "Apache-2.0",
+    # Apache-2.0 plus an exception: code compiled into our binaries does not
+    # carry Apache-2.0's notice requirements. Used by Bytecode Alliance crates
+    # such as `target-lexicon`.
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    # Used, together with MIT, by the `brotli` compression crates.
+    "BSD-3-Clause",
+    # Functionally equivalent to MIT; used by `untrusted` and, together with
+    # Apache-2.0, by `ring`.
+    "ISC",
+    # Permissive like MIT; used by `foldhash`, the default hasher of the hash
+    # table crate `hashbrown` (0.15 and later, through its default
+    # `default-hasher` feature).
+    "Zlib",
+    # The license of the Unicode data in `unicode-ident` and in the ICU crates
+    # (`icu_normalizer`, `icu_properties`) that the `url` crate uses through
+    # `idna`. Permissive, with a notice requirement.
+    "Unicode-3.0",
+]
+# The list above anticipates dependencies the roadmap adds, such as serde,
+# tokio and the windows crate, so most entries are unused until then. Without
+# this, every unused entry would print a warning on each run.
+#
+# Tauri (T-0.6) will not pass as is: on our target it pulls in crates
+# licensed MPL-2.0 only (`cssparser`, `cssparser-macros`, `dtoa-short`,
+# `option-ext`, `selectors`). MPL-2.0 is weak copyleft, so whether to accept
+# it is the maintainer's decision, ideally as per-crate `exceptions` rather
+# than adding it to `allow`.
+unused-allowed-license = "allow"
+# When a crate has no SPDX `license` field and only a license file,
+# cargo-deny scores how similar the file is to each known license text and
+# accepts the best match if the score reaches this threshold. 0.93 is
+# stricter than the default of 0.8, but it is a similarity score, not a
+# guarantee: a file with a few words changed (for example a clause added to
+# MIT that forbids commercial use) can still score above it. Crates that only
+# ship a license file therefore need a human look when they are added and,
+# where needed, a `[[licenses.clarify]]` entry that states their license.
+confidence-threshold = 0.93
+
+[licenses.private]
+# Our own crates are not published (`publish = false`), but their licenses
+# are still checked rather than skipped, so a crate that forgets
+# `license.workspace = true` fails the check.
+ignore = false
+
+[bans]
+# Two versions of the same crate make the binaries larger and mean two copies
+# to keep patched. Usually `cargo update` or aligning a version requirement
+# fixes it. When the conflict is between other people's crates and cannot be
+# fixed yet, add the older version to `skip` with a `reason`.
+multiple-versions = "deny"
+# A `*` version requirement accepts any future release, including a
+# malicious or breaking one. Always give a version.
+wildcards = "deny"
+# ...except for dependencies between our own crates, which use `path` and are
+# never published (`publish = false`), so they need no version.
+allow-wildcard-paths = true
+
+[sources]
+# Crates may only come from crates.io (the default `allow-registry`), where
+# each published version is immutable and covered by RustSec. A crate from
+# another registry or straight from a git repository fails the check: its
+# code could change without a version bump.
+unknown-registry = "deny"
+unknown-git = "deny"

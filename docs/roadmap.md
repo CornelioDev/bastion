@@ -3,9 +3,9 @@
 ## Current status
 
 - **Active phase:** F0 — Foundations
-- **Next task:** T-0.3
+- **Next task:** T-0.4
 - **Last updated:** 2026-10-28
-- **Notes:** Planning complete. Stack: Rust service + Tauri 2 + Vue 3 + shadcn-vue. Dual-licensed MIT OR Apache-2.0. Every task runs through the loop in `docs/workflow.md`. T-0.1 done (Rust pinned to 1.99.1, MSRV 1.99). T-0.2 done (LF everywhere via `.gitattributes`, anchored ignore rules, forced text diffs for sources). Open before F2: ADR on isolating `unsafe` code ([#1](https://github.com/CornelioDev/bastion/issues/1)).
+- **Notes:** Planning complete. Stack: Rust service + Tauri 2 + Vue 3 + shadcn-vue. Dual-licensed MIT OR Apache-2.0. Every task runs through the loop in `docs/workflow.md`. T-0.1 done (Rust pinned to 1.99.1, MSRV 1.99). T-0.2 done (LF everywhere via `.gitattributes`, anchored ignore rules, forced text diffs for sources). T-0.3 done (`deny.toml`: permissive licenses only, advisories in all dependencies, no duplicates, crates.io only; checks `x86_64-pc-windows-msvc` only, pending maintainer confirmation). Decide before T-0.6: whether to accept the five MPL-2.0 crates Tauri pulls in (per-crate exceptions recommended). Open before F2: ADR on isolating `unsafe` code ([#1](https://github.com/CornelioDev/bastion/issues/1)).
 
 Legend: `[ ]` todo · `[~]` in progress / blocked · `[x]` done. Each phase maps to a GitHub milestone; each task can be mirrored as an issue titled `T-x.y: …`.
 
@@ -28,7 +28,7 @@ MVP phases: **F0 → F6**. Later: **F7 → F9**.
 - [x] **T-0.1** Initialize the Cargo workspace with empty crates `bastion-core`, `bastion-ipc`, `bastion-service`, `bastion-nmh`; set `rust-version` (MSRV), `edition = "2024"`, `license = "MIT OR Apache-2.0"`, and `[workspace.lints]`; add `rust-toolchain.toml`.
   - Acceptance: `cargo build --workspace` and `cargo test --workspace` pass.
 - [x] **T-0.2** Add `rustfmt.toml`, `.editorconfig`, `.gitattributes` (LF, `*.rs text eol=lf`), `.gitignore`, and `.vscode/extensions.json` (rust-analyzer, Vue - Official, ESLint, Prettier, Tailwind CSS IntelliSense, EditorConfig).
-- [ ] **T-0.3** Add `deny.toml` for `cargo-deny`: allowed licenses compatible with MIT/Apache-2.0, advisories, banned duplicates.
+- [x] **T-0.3** Add `deny.toml` for `cargo-deny`: allowed licenses compatible with MIT/Apache-2.0, advisories, banned duplicates.
 - [ ] **T-0.4** Configure `lefthook.yml`: pre-commit runs `cargo fmt --check`, Prettier, ESLint on staged files; commit-msg checks Conventional Commits.
 - [ ] **T-0.5** GitHub settings: create the labels listed in CONTRIBUTING, milestones F0–F6, branch protection on `main` (CI required, one review, squash merge), private vulnerability reporting, Discussions, and the DCO app. Issue forms, PR template, `CODEOWNERS` and `dependabot.yml` are already in `.github/`.
   - Depends on: T-0.1
