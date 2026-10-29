@@ -4,4 +4,4 @@ This project adopts the [Contributor Covenant, version 2.1](https://www.contribu
 
 ## Reporting
 
-Report unacceptable behavior to the maintainers at **[CONDUCT CONTACT EMAIL]**. All reports are reviewed promptly and kept confidential. Enforcement follows the Contributor Covenant's [enforcement guidelines](https://www.contributor-covenant.org/version/2/1/code_of_conduct/#enforcement-guidelines).
+Report unacceptable behavior to the maintainers at **[cornelio@proton.me](mailto:cornelio@proton.me)**. All reports are reviewed promptly and kept confidential. Enforcement follows the Contributor Covenant's [enforcement guidelines](https://www.contributor-covenant.org/version/2/1/code_of_conduct/#enforcement-guidelines).
