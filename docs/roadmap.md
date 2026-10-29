@@ -3,9 +3,9 @@
 ## Current status
 
 - **Active phase:** F0 — Foundations
-- **Next task:** T-0.4
+- **Next task:** T-0.6
 - **Last updated:** 2026-10-28
-- **Notes:** Planning complete. Stack: Rust service + Tauri 2 + Vue 3 + shadcn-vue. Dual-licensed MIT OR Apache-2.0. Every task runs through the loop in `docs/workflow.md`. T-0.1 done (Rust pinned to 1.99.1, MSRV 1.99). T-0.2 done (LF everywhere via `.gitattributes`, anchored ignore rules, forced text diffs for sources). T-0.3 done (`deny.toml`: permissive licenses only, advisories in all dependencies, no duplicates, crates.io only; checks `x86_64-pc-windows-msvc` only, pending maintainer confirmation). Decide before T-0.6: whether to accept the five MPL-2.0 crates Tauri pulls in (per-crate exceptions recommended). Open before F2: ADR on isolating `unsafe` code ([#1](https://github.com/CornelioDev/bastion/issues/1)).
+- **Notes:** Planning complete. Stack: Rust service + Tauri 2 + Vue 3 + shadcn-vue. Dual-licensed MIT OR Apache-2.0. Every task runs through the loop in `docs/workflow.md`. T-0.1 done (Rust pinned to 1.99.1, MSRV 1.99). T-0.2 done (LF everywhere via `.gitattributes`, anchored ignore rules, forced text diffs for sources). T-0.3 done (`deny.toml`: permissive licenses only, advisories in all dependencies, no duplicates, crates.io only; checks `x86_64-pc-windows-msvc` only, pending maintainer confirmation). T-0.4 done (lefthook: rustfmt, Prettier and ESLint on staged files, Conventional Commits check; run `lefthook install` once per clone). T-0.5 done (labels, milestones F0–F6, squash-only merges, `main` ruleset without bypass, private vulnerability reporting, Discussions, DCO app). Decide before T-0.6: whether to accept the five MPL-2.0 crates Tauri pulls in (per-crate exceptions recommended). Open: nothing formats Markdown, JSON or YAML outside `apps/desktop` and `extension` (no root Prettier). Open before F2: ADR on isolating `unsafe` code ([#1](https://github.com/CornelioDev/bastion/issues/1)).
 
 Legend: `[ ]` todo · `[~]` in progress / blocked · `[x]` done. Each phase maps to a GitHub milestone; each task can be mirrored as an issue titled `T-x.y: …`.
 
@@ -30,7 +30,7 @@ MVP phases: **F0 → F6**. Later: **F7 → F9**.
 - [x] **T-0.2** Add `rustfmt.toml`, `.editorconfig`, `.gitattributes` (LF, `*.rs text eol=lf`), `.gitignore`, and `.vscode/extensions.json` (rust-analyzer, Vue - Official, ESLint, Prettier, Tailwind CSS IntelliSense, EditorConfig).
 - [x] **T-0.3** Add `deny.toml` for `cargo-deny`: allowed licenses compatible with MIT/Apache-2.0, advisories, banned duplicates.
 - [x] **T-0.4** Configure `lefthook.yml`: pre-commit runs `cargo fmt --check`, Prettier, ESLint on staged files; commit-msg checks Conventional Commits.
-- [ ] **T-0.5** GitHub settings: create the labels listed in CONTRIBUTING, milestones F0–F6, branch protection on `main` (CI required, one review, squash merge), private vulnerability reporting, Discussions, and the DCO app. Issue forms, PR template, `CODEOWNERS` and `dependabot.yml` are already in `.github/`.
+- [x] **T-0.5** GitHub settings: create the labels listed in CONTRIBUTING, milestones F0–F6, squash-only merges, a ruleset on `main` (no deletion, no force-push, linear history; no required review while there is a single maintainer, since GitHub doesn't let authors approve their own PRs), private vulnerability reporting, Discussions, and the DCO app. Issue forms, PR template, `CODEOWNERS` and `dependabot.yml` are already in `.github/`.
   - Depends on: T-0.1
 
 ### Frontend and extension scaffolding
@@ -51,7 +51,7 @@ MVP phases: **F0 → F6**. Later: **F7 → F9**.
 ### CI and release
 
 - [ ] **T-0.12** Export the MVP mockup screens to `docs/assets/mockups/` and link them from `docs/ui-stack.md`.
-- [ ] **T-0.13** CI (`.github/workflows/ci.yml`, `windows-latest`) running `just check`, plus the jobs from T-0.17 and T-0.18. Required for merging into `main`.
+- [ ] **T-0.13** CI (`.github/workflows/ci.yml`, `windows-latest`) running `just check`, plus the jobs from T-0.17 and T-0.18. Required for merging into `main`: add it as a required status check to the `main` ruleset.
   - Depends on: T-0.16, T-0.17, T-0.18
 - [ ] **T-0.14** Release automation with `release-please` (workspace versioning, changelog from Conventional Commits, GitHub Releases).
   - Depends on: T-0.13

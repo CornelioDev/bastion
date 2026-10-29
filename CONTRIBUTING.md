@@ -72,9 +72,9 @@ git commit -s -m "feat(core): …"
 3. Add or update tests. Logic in `bastion-core` and `bastion-ipc` is developed test-first.
 4. Run `just check` locally; it runs every check CI runs. Don't modify acceptance tests (`**/tests/acceptance*`) in a feature PR; propose changes to them in a separate `test:` PR.
 5. Update docs, the roadmap, and `CHANGELOG.md` (`[Unreleased]`) when relevant.
-6. Fill in the PR template. CI must pass and one maintainer review is required.
+6. Fill in the PR template. A maintainer squash-merges the PR once `just check` passes.
 
-PRs are squash-merged; the PR title becomes the commit message, so it must follow Conventional Commits.
+PRs are squash-merged; the PR title becomes the commit title, so it must follow Conventional Commits.
 
 ## Labels
 
