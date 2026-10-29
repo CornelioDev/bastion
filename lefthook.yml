@@ -1,0 +1,89 @@
+# lefthook (https://lefthook.dev): Git hooks that run quick checks before a
+# commit is created. Install them once per clone with `lefthook install`
+# (CONTRIBUTING.md, "Development setup"). They only catch mistakes early: CI
+# runs every check again (`just check`), and `git commit --no-verify` skips
+# the hooks.
+#
+# lefthook runs each command with `sh` (on Windows, the one that comes with
+# Git for Windows) from the repository root. Version 2.0 is the first that
+# does so on Windows, for `run` and for `skip: - run:` alike.
+#
+# Neither hook uses lefthook's file templates (`{staged_files}`) or passes
+# arguments through the command line: on Windows, lefthook's quoting breaks on
+# a single quote, which let a file named `x'$(cmd)'.rs` run `cmd`.
+# scripts/run-on-staged.sh lists the staged files itself and hands them to the
+# tool without a shell in between. For the same reason, avoid double quotes
+# in `run`: on Windows, lefthook wraps the whole command in double quotes to
+# pass it to sh.
+#
+# The hooks check files but never change them. Letting the formatters fix
+# files and staging the result (`stage_fixed`) would also stage the changes
+# you deliberately left out of a partially staged file. When a check fails,
+# run the formatter yourself and stage what you want. Note that the checks
+# read the working tree, so a partially staged file is checked as it is on
+# disk, not as it will be committed.
+
+min_version: 2.0.0
+
+pre-commit:
+  # The jobs only read files, so they run at the same time.
+  parallel: true
+  jobs:
+    # rustfmt is the formatter `cargo fmt` runs; calling it directly checks
+    # only the staged files, while `cargo fmt --check -- <files>` would check
+    # the whole workspace as well. It reads rustfmt.toml, and it also checks
+    # the modules a file declares with `mod name;`, so staging a crate's
+    # lib.rs or main.rs checks every module of that crate.
+    - name: rustfmt
+      run: sh scripts/run-on-staged.sh -e 'rs' rustfmt --check --
+      fail_text: Run `cargo fmt --all`, then stage the changes.
+
+    # The desktop app and the extension each have their own Prettier and
+    # ESLint (T-0.7, T-0.11), installed with `pnpm install --dir <package>`.
+    # A job is skipped while its package does not have the tool installed: the
+    # package does not exist yet, `pnpm install` has not been run, or the tool
+    # is not one of its dependencies yet.
+    #
+    # Prettier covers code, styles, JSON, Markdown and YAML inside the
+    # package. pnpm writes its lockfile in its own format, so it is left out.
+    # Markdown, JSON and YAML outside the two packages (README, docs/,
+    # .github/) are not checked: there is no Prettier at the repository root.
+    #
+    # ESLint fails on warnings too, as clippy does with `-D warnings`.
+    # `--no-warn-ignored` keeps a staged file that the ESLint config ignores
+    # from producing a warning, which would then fail the commit.
+    - name: desktop-prettier
+      skip:
+        - run: test ! -e apps/desktop/node_modules/.bin/prettier
+      run: sh scripts/run-on-staged.sh -C apps/desktop -x pnpm-lock.yaml -e 'js mjs cjs ts mts cts tsx vue css html json jsonc md yml yaml' pnpm exec prettier --check --ignore-unknown
+      fail_text: Run `pnpm exec prettier --write` on these files in apps/desktop, then stage the changes.
+
+    - name: desktop-eslint
+      skip:
+        - run: test ! -e apps/desktop/node_modules/.bin/eslint
+      run: sh scripts/run-on-staged.sh -C apps/desktop -e 'js mjs cjs ts mts cts tsx vue' pnpm exec eslint --max-warnings=0 --no-warn-ignored
+
+    - name: extension-prettier
+      skip:
+        - run: test ! -e extension/node_modules/.bin/prettier
+      run: sh scripts/run-on-staged.sh -C extension -x pnpm-lock.yaml -e 'js mjs cjs ts mts cts tsx vue css html json jsonc md yml yaml' pnpm exec prettier --check --ignore-unknown
+      fail_text: Run `pnpm exec prettier --write` on these files in extension, then stage the changes.
+
+    - name: extension-eslint
+      skip:
+        - run: test ! -e extension/node_modules/.bin/eslint
+      run: sh scripts/run-on-staged.sh -C extension -e 'js mjs cjs ts mts cts tsx vue' pnpm exec eslint --max-warnings=0 --no-warn-ignored
+
+commit-msg:
+  jobs:
+    # Checks the first line of the message against Conventional Commits
+    # (CONTRIBUTING.md, "Commits"). `{1}` is the path of the file Git wrote
+    # the message to. It is handed to the script on standard input, through a
+    # quoted here-document in which sh treats every character literally, so
+    # that a path with spaces or a single quote (a worktree under
+    # C:\Users\O'Brien, say) reaches the script intact.
+    - name: conventional-commits
+      run: |
+        sh scripts/check-commit-msg.sh <<'MESSAGE_FILE'
+        {1}
+        MESSAGE_FILE

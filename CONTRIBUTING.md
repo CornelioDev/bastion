@@ -55,7 +55,9 @@ fix(service): restore session after reboot when clock moved back
 docs: explain native messaging setup
 ```
 
-Types: `feat`, `fix`, `docs`, `refactor`, `test`, `perf`, `build`, `ci`, `chore`. Scopes: `core`, `ipc`, `service`, `nmh`, `desktop`, `extension`, `installer`, `deps`.
+Types: `feat`, `fix`, `docs`, `refactor`, `test`, `perf`, `build`, `ci`, `chore`. Scopes: `core`, `ipc`, `service`, `nmh`, `desktop`, `extension`, `installer`, `deps`; `docs` commits may instead name the document they change, such as `roadmap`, `workflow` or `agents`. Scopes are optional and lowercase.
+
+The Git hooks that `lefthook install` sets up check this format when you commit, and check the formatting of the files you stage (see [`lefthook.yml`](lefthook.yml)). The hooks run code from the repository (`lefthook.yml`, `scripts/`, and each package's ESLint and Prettier configs and `node_modules`), so review those before committing on a branch from someone you don't trust.
 
 Every commit must be signed off under the [Developer Certificate of Origin](https://developercertificate.org):
 

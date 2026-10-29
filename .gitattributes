@@ -41,6 +41,7 @@
 *.svg diff
 *.sql diff
 *.ps1 diff
+*.sh diff
 *.bat diff
 *.cmd diff
 *.manifest diff

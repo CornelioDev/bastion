@@ -29,7 +29,7 @@ MVP phases: **F0 → F6**. Later: **F7 → F9**.
   - Acceptance: `cargo build --workspace` and `cargo test --workspace` pass.
 - [x] **T-0.2** Add `rustfmt.toml`, `.editorconfig`, `.gitattributes` (LF, `*.rs text eol=lf`), `.gitignore`, and `.vscode/extensions.json` (rust-analyzer, Vue - Official, ESLint, Prettier, Tailwind CSS IntelliSense, EditorConfig).
 - [x] **T-0.3** Add `deny.toml` for `cargo-deny`: allowed licenses compatible with MIT/Apache-2.0, advisories, banned duplicates.
-- [ ] **T-0.4** Configure `lefthook.yml`: pre-commit runs `cargo fmt --check`, Prettier, ESLint on staged files; commit-msg checks Conventional Commits.
+- [x] **T-0.4** Configure `lefthook.yml`: pre-commit runs `cargo fmt --check`, Prettier, ESLint on staged files; commit-msg checks Conventional Commits.
 - [ ] **T-0.5** GitHub settings: create the labels listed in CONTRIBUTING, milestones F0–F6, branch protection on `main` (CI required, one review, squash merge), private vulnerability reporting, Discussions, and the DCO app. Issue forms, PR template, `CODEOWNERS` and `dependabot.yml` are already in `.github/`.
   - Depends on: T-0.1
 

@@ -92,6 +92,9 @@ lcov.info
 .vs/
 *.swp
 
+# lefthook: personal overrides of lefthook.yml, such as skipping a job.
+/lefthook-local.yml
+
 # Claude Code: personal local settings and instructions. The shared agents in
 # .claude/agents/ and CLAUDE.md are committed.
 .claude/settings.local.json
