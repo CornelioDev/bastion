@@ -73,11 +73,8 @@ allow = [
 # tokio and the windows crate, so most entries are unused until then. Without
 # this, every unused entry would print a warning on each run.
 #
-# Tauri (T-0.6) will not pass as is: on our target it pulls in crates
-# licensed MPL-2.0 only (`cssparser`, `cssparser-macros`, `dtoa-short`,
-# `option-ext`, `selectors`). MPL-2.0 is weak copyleft, so whether to accept
-# it is the maintainer's decision, ideally as per-crate `exceptions` rather
-# than adding it to `allow`.
+# MPL-2.0 is not in this list on purpose: the few crates that need it are
+# accepted one by one in `[[licenses.exceptions]]` below.
 unused-allowed-license = "allow"
 # When a crate has no SPDX `license` field and only a license file,
 # cargo-deny scores how similar the file is to each known license text and
@@ -88,6 +85,54 @@ unused-allowed-license = "allow"
 # ship a license file therefore need a human look when they are added and,
 # where needed, a `[[licenses.clarify]]` entry that states their license.
 confidence-threshold = 0.93
+
+# Crates allowed a license that is not in `allow`, each for a reason.
+#
+# MPL-2.0 (accepted by the maintainer for these five crates only, T-0.6).
+# Tauri (in the desktop app) needs them on our target, and they are licensed
+# MPL-2.0 only. MPL-2.0 is weak copyleft at the level of each file: it only
+# applies to the files of these crates, not to our code that links them, so
+# Bastion stays MIT OR Apache-2.0. What it asks of us: changes we make to
+# those files are published under MPL-2.0 (we use them unmodified from
+# crates.io), and whoever receives a binary that contains one of them is told
+# where to get its source. It is not added to `allow` so that any other crate
+# licensed MPL-2.0 still fails the check and needs its own decision.
+#
+# Each exception is pinned to the major version that was reviewed (`@0.37`
+# matches any 0.37.x); a new major version must be reviewed again.
+
+# The next four only run while compiling and are not part of the binaries we
+# ship: Tauri's code generator (`tauri-codegen`, through `tauri-utils` and
+# `dom_query`) uses them to read and rewrite the app's HTML, for example to
+# add the Content Security Policy. `cargo tree -p bastion-desktop
+# -e normal,no-proc-macro -i <crate>` prints nothing for them.
+
+# CSS parser.
+[[licenses.exceptions]]
+crate = "cssparser@0.37"
+allow = ["MPL-2.0"]
+
+# Procedural macros of `cssparser`.
+[[licenses.exceptions]]
+crate = "cssparser-macros@0.7"
+allow = ["MPL-2.0"]
+
+# Formats numbers for `cssparser`.
+[[licenses.exceptions]]
+crate = "dtoa-short@0.3"
+allow = ["MPL-2.0"]
+
+# CSS selector matching, built on `cssparser`.
+[[licenses.exceptions]]
+crate = "selectors@0.38"
+allow = ["MPL-2.0"]
+
+# This one is in the desktop app's binary: a small `Option` extension used by
+# `dirs-sys`, through which Tauri finds per-user folders such as the app data
+# directory.
+[[licenses.exceptions]]
+crate = "option-ext@0.2"
+allow = ["MPL-2.0"]
 
 [licenses.private]
 # Our own crates are not published (`publish = false`), but their licenses
@@ -107,6 +152,16 @@ wildcards = "deny"
 # ...except for dependencies between our own crates, which use `path` and are
 # never published (`publish = false`), so they need no version.
 allow-wildcard-paths = true
+# Duplicates inside Tauri's own dependencies (T-0.6). Every crate involved was
+# at its latest release when these were added, so no update could align them.
+# Remove an entry once `cargo deny check` passes without it.
+skip = [
+    { crate = "getrandom@0.3", reason = "tauri 2 depends on 0.3; uuid, used by tauri-utils, has moved to 0.4" },
+    { crate = "indexmap@1", reason = "schemars 0.8, which tauri-utils and tauri-build still use, depends on indexmap 1; everything else uses 2" },
+    { crate = "hashbrown@0.12", reason = "pulled in by indexmap 1 (see above); indexmap 2 uses a current hashbrown" },
+    { crate = "miniz_oxide@0.8", reason = "png, which tauri-codegen uses for the app icon, depends on 0.8 directly and on 0.9 through flate2" },
+    { crate = "syn@2", reason = "syn 3 is recent: most procedural macros in Tauri's dependencies still use syn 2, a few already use 3" },
+]
 
 [sources]
 # Crates may only come from crates.io (the default `allow-registry`), where

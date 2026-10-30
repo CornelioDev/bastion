@@ -1,0 +1,25 @@
+[package]
+name = "bastion-desktop"
+description = "Bastion desktop app: the Tauri shell that hosts the Vue user interface."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+# The app's code lives in a library so that `main.rs` stays a thin entry point
+# and the code can be tested without starting the app. Its name differs from
+# the binary's because, on Windows, a library and a binary with the same name
+# overwrite each other's debug files (https://github.com/rust-lang/cargo/issues/8519).
+[lib]
+name = "bastion_desktop_lib"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[lints]
+workspace = true

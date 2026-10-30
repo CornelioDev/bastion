@@ -12,9 +12,9 @@
 
 # --- Build output ------------------------------------------------------------
 
-# Cargo, for the workspace and for the Tauri crate.
+# Cargo. The Tauri crate (apps/desktop/src-tauri) is a workspace member, so it
+# builds here too.
 /target/
-/apps/desktop/src-tauri/target/
 
 # Vite builds of the desktop frontend and the extension.
 /apps/desktop/dist/

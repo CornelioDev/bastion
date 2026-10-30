@@ -7,6 +7,7 @@ members = [
     "crates/bastion-ipc",
     "crates/bastion-service",
     "crates/bastion-nmh",
+    "apps/desktop/src-tauri",
 ]
 # A workspace root without a [package] has no edition, so the resolver is set
 # explicitly. Resolver 3 (the edition 2024 default) prefers dependency versions
@@ -49,8 +50,8 @@ missing_debug_implementations = "warn"
 # `unsafe` is only allowed in bastion-service/src/sys/, which opts in with an
 # `#[allow(unsafe_code, reason = "...")]` on that module (AGENTS.md, "Hard
 # rules"). It is an error rather than a warning so that even `cargo build`
-# rejects it. bastion-core, bastion-ipc and bastion-nmh go further with
-# `#![forbid(unsafe_code)]`, which no `#[allow]` can override.
+# rejects it. bastion-core, bastion-ipc, bastion-nmh and bastion-desktop go
+# further with `#![forbid(unsafe_code)]`, which no `#[allow]` can override.
 unsafe_code = "deny"
 # Idioms such as writing `Formatter<'_>` so that borrows are visible.
 rust_2018_idioms = { level = "warn", priority = -1 }
