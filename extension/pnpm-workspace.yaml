@@ -1,0 +1,29 @@
+# pnpm settings for the extension. pnpm 12 reads its settings from this file
+# and from the user's global config.yaml; .npmrc files only provide registry,
+# authentication, TLS and proxy settings. The file has no `packages` field, so
+# the workspace is this one package, separate from apps/desktop:
+# `pnpm --dir extension ...`, the lefthook jobs and the lockfile work as they
+# would without it.
+#
+# The settings below protect installs from a dependency that is published
+# with malware, as recommended in https://pnpm.io/supply-chain-security. The
+# values of `minimumReleaseAge`, `strictDepBuilds` and `blockExoticSubdeps`
+# are pnpm 12's defaults; they are written out so that they stay on whatever
+# the user's global config says.
+
+# Install only versions published at least a day (1440 minutes) ago: a
+# malicious release is usually detected and removed within hours. Setting the
+# value here also turns on `minimumReleaseAgeStrict`, so that when no version
+# in a range is old enough, the install fails instead of taking a newer one.
+minimumReleaseAge: 1440
+
+# Dependencies may not run install scripts (preinstall, install, postinstall)
+# unless `allowBuilds` lists them, and an install fails when one has a script
+# that is not listed. None of the current dependencies needs one. Review a
+# package before adding it here.
+strictDepBuilds: true
+allowBuilds: {}
+
+# Only direct dependencies may come from a Git repository or a tarball URL;
+# the dependencies they pull in must come from the registry.
+blockExoticSubdeps: true

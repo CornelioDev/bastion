@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    // The service worker has no `window` or `document`, so the DOM's types
+    // stay out.
+    "lib": ["ES2022", "WebWorker"],
+    // TypeScript 6 loads no `@types/*` packages unless they are listed. The
+    // extension has none: Node.js types stay out because it does not run in
+    // Node.js.
+    "types": [],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "noEmit": true,
+    // Build mode keeps what it learned between runs here, out of the tree.
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.spec.ts"]
+}

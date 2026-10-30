@@ -1,0 +1,14 @@
+{
+  // Solution file: `tsc --build` (`pnpm typecheck`) checks the three projects
+  // below. Each one sees only the types its code runs with:
+  // - tsconfig.app.json: the extension in src/, which runs in the browser.
+  // - tsconfig.test.json: unit tests next to the code and tests/, which run
+  //   in Vitest under Node.js.
+  // - tsconfig.node.json: the tool configs, which run in Node.js.
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.test.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}

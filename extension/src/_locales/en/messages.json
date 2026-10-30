@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "Keitora",
+    "description": "Name of the extension, shown in the browser's extension list. The product name is not translated."
+  },
+  "extensionDescription": {
+    "message": "Blocks distracting websites during your Keitora focus sessions.",
+    "description": "Description of the extension, shown in the browser's extension list. At most 132 characters."
+  }
+}

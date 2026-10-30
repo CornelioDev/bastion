@@ -1,0 +1,12 @@
+{
+  // Same rules as the extension, plus the tests. The code they import from
+  // src/ is checked here too, against the test's types.
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    // Tests run in Node.js (Vitest) and read the source and build files.
+    "types": ["node"],
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo"
+  },
+  "include": ["src/**/*.spec.ts", "tests/**/*.ts"],
+  "exclude": []
+}
