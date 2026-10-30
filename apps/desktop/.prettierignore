@@ -1,0 +1,13 @@
+# Files Prettier (`pnpm format`, `pnpm format:check`) leaves alone, on top of
+# node_modules/, which it always skips. Prettier runs with its default
+# options; the empty .prettierrc.json marks this package as formatted with
+# Prettier, so that editors format it on save.
+
+# Build output and generated files.
+/dist/
+/coverage/
+/src-tauri/gen/
+/src-tauri/target/
+
+# pnpm writes its lockfile in its own format.
+/pnpm-lock.yaml

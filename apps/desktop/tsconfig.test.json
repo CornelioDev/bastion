@@ -1,0 +1,18 @@
+{
+  // Same rules as the app, plus the tests. The code they import from src/ is
+  // checked here too, against the test's types.
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    // Tests run in Node.js (Vitest), and some use Node.js tools such as
+    // ESLint and Prettier.
+    "types": ["node"],
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo"
+  },
+  "include": [
+    "src/**/*.d.ts",
+    "src/**/*.spec.ts",
+    "tests/**/*.ts",
+    "tests/**/*.vue"
+  ],
+  "exclude": []
+}

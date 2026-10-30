@@ -45,8 +45,9 @@ pre-commit:
     # is not one of its dependencies yet.
     #
     # Prettier covers code, styles, JSON, Markdown and YAML inside the
-    # package. pnpm writes its lockfile in its own format, so it is left out.
-    # Markdown, JSON and YAML outside the two packages (README, docs/,
+    # package. pnpm writes its lockfile in its own format, so it is left out,
+    # and generated files listed in the package's .prettierignore (such as
+    # Tauri's src-tauri/gen/) pass without being checked. Markdown, JSON and YAML outside the two packages (README, docs/,
     # .github/) are not checked: there is no Prettier at the repository root.
     #
     # ESLint fails on warnings too, as clippy does with `-D warnings`.
