@@ -123,7 +123,7 @@ import {
 
 // --- Theme -------------------------------------------------------------------
 
-// shadcn-vue's dark theme is the `dark` class on <html> (src/styles/main.css).
+// shadcn-vue's dark theme is the `dark` class on <html> (src/styles/tokens.css).
 // The gallery starts in whichever theme the document is in.
 const isDark = ref(document.documentElement.classList.contains("dark"));
 
@@ -161,7 +161,8 @@ const focusDays: FocusDay[] = [
 ];
 
 const chartConfig = {
-  minutes: { label: "Focus minutes", color: "var(--chart-2)" },
+  // --chart-1 is the focus color (src/styles/tokens.css).
+  minutes: { label: "Focus minutes", color: "var(--chart-1)" },
 } satisfies ChartConfig;
 
 const tooltipTemplate = componentToString(chartConfig, ChartTooltipContent);
@@ -212,6 +213,36 @@ const onSubmit = handleSubmit((values) => {
       </header>
 
       <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <!-- Bastion's own tokens and fonts (src/styles/tokens.css,
+             fonts.css), which no shadcn-vue component shows. -->
+        <section
+          aria-labelledby="gallery-tokens"
+          class="space-y-3 rounded-xl border p-4"
+        >
+          <h2 id="gallery-tokens" class="font-medium">Design tokens</h2>
+          <div class="flex flex-wrap gap-2 text-sm font-medium">
+            <span
+              class="bg-primary text-primary-foreground rounded-md px-3 py-1"
+            >
+              Focus
+            </span>
+            <span class="bg-break text-break-foreground rounded-md px-3 py-1">
+              Break
+            </span>
+            <span class="bg-strict text-strict-foreground rounded-md px-3 py-1">
+              Strict
+            </span>
+          </div>
+          <p class="flex flex-wrap gap-x-2 text-sm">
+            <span>Geist 400</span>
+            <span class="font-medium">500</span>
+            <span class="font-semibold">600</span>
+            <span class="font-bold">700</span>
+            <span class="text-muted-foreground">Muted text</span>
+          </p>
+          <p class="font-mono text-4xl font-medium tabular-nums">25:00</p>
+        </section>
+
         <section
           data-gallery-component="button"
           class="space-y-3 rounded-xl border p-4"

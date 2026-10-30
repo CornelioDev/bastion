@@ -67,9 +67,23 @@ IPC types are generated from the Rust `bastion-ipc` crate with [`specta`](https:
 | `--break` | `#12A594` | `#1FC7B1` | Break phases, healthy status |
 | `--strict` | `#F5A524` | `#F7B955` | Strict mode, lock |
 | `--border` | `#E4E4E7` | `#27272A` | Borders |
-| `--radius` | `0.75rem` | | Base radius |
+| `--radius` | `0.75rem` | | Base radius; the radius scale below is offsets from it |
 
 Text on `--primary` and `--strict` fills uses dark text (`#18181B`) to meet 4.5:1 contrast.
+
+The radius scale (`rounded-sm` … `rounded-4xl`, defined in `apps/desktop/src/styles/main.css`) is fixed offsets from `--radius`, so every corner follows the one base value. The generated shadcn-vue components choose the step; these are the sizes they get:
+
+| Step | Value | Size | Used by |
+|---|---|---|---|
+| `sm` | `--radius` − 8px | 4px | Command palette items, kbd |
+| `md` | `--radius` − 6px | 6px | Menu and select items, tab triggers, tooltips, small (`xs`, `sm`) buttons |
+| `lg` | `--radius` − 4px | 8px | Inputs, textareas, buttons, the select trigger, the tab list, dropdown and select menus |
+| `xl` | `--radius` | 12px | Cards, dialogs, alert dialogs, the command palette |
+| `2xl` | `--radius` + 2px | 14px | No visible corner (toasts carry the class, but see below) |
+| `3xl` | `--radius` + 4px | 16px | No current component |
+| `4xl` | `--radius` + 8px | 20px | Badges, which stay pills (the radius is at least half their height) |
+
+Toasts are 12px like cards: `Sonner.vue` gives them the `rounded-2xl` class, but vue-sonner's own rule sets their radius to `--border-radius`, which `Sonner.vue` sets to `var(--radius)`. Switches and scrollbars are pills (`rounded-full`); sheets sit against a window edge and keep square corners.
 
 ## Window
 

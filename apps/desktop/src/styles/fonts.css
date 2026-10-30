@@ -1,0 +1,45 @@
+/* SPDX-License-Identifier: MIT OR Apache-2.0 */
+
+/*
+ * The app's fonts, Geist and Geist Mono (docs/ui-stack.md), bundled with the
+ * app: the files come from the @fontsource-variable/geist and
+ * @fontsource-variable/geist-mono packages, and Vite copies them into the
+ * build. Nothing is fetched from the network, which the Content Security
+ * Policy would block anyway.
+ *
+ * Each family is one variable font file (every weight from 100 to 900),
+ * upright only, with the Latin subset of the package: Basic Latin and
+ * Latin-1 (enough for English and Spanish), general punctuation and a few
+ * symbols such as the euro sign. This keeps the app small (about 50 kB for
+ * both). Characters outside the subset are drawn with the next family in
+ * --font-sans and --font-mono (tokens.css), the system's own fonts, and
+ * italic text is slanted by the browser. To add a subset or the italics,
+ * copy the matching rules from the package's wght.css or wght-italic.css,
+ * and give the rules below their `unicode-range` from wght.css too.
+ *
+ * Geist has tabular figures (the OpenType `tnum` feature), so the timer can
+ * use Tailwind's `tabular-nums` to keep its digits from shifting. Geist Mono
+ * has them by design.
+ *
+ * The fonts are under the SIL Open Font License 1.1, which asks that the
+ * license travels with them: public/licenses/ holds it, and Vite copies it
+ * into the build next to the fonts.
+ */
+
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("@fontsource-variable/geist/files/geist-latin-wght-normal.woff2")
+    format("woff2");
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("@fontsource-variable/geist-mono/files/geist-mono-latin-wght-normal.woff2")
+    format("woff2");
+}

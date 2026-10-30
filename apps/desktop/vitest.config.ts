@@ -22,6 +22,13 @@ export default mergeConfig(
       // 3 seconds on its own and over 5 when the machine is busy. A test
       // that hangs still fails, just later.
       testTimeout: 30_000,
+      // The same goes for setup hooks, whose default is 10 seconds: the
+      // component gallery's `beforeAll` (t0-8-component-gallery.spec.ts)
+      // compiles every shadcn-vue component and the libraries they use,
+      // which takes over 5 seconds on its own and close to 10 while other
+      // test files run `vite build` at the same time. Hooks that need longer
+      // still, such as those builds, set their own timeout.
+      hookTimeout: 30_000,
     },
   }),
 );

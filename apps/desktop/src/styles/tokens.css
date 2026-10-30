@@ -1,0 +1,148 @@
+/* SPDX-License-Identifier: MIT OR Apache-2.0 */
+
+/*
+ * Bastion's design tokens: the colors, radius and fonts of the app, as the
+ * CSS variables that the shadcn-vue components in src/components/ui/ read,
+ * plus Bastion's own tokens for break phases and strict mode.
+ *
+ * The theme is the `dark` class on <html>: `:root` holds the light values,
+ * `.dark` the dark ones. There is deliberately no `prefers-color-scheme`
+ * media query here; following the OS's theme is a setting of its own
+ * (T-3.3) that toggles the class.
+ *
+ * Where the values come from:
+ *
+ * - docs/ui-stack.md, "Design tokens": --background, --card, --foreground,
+ *   --muted-foreground, --primary, --break, --strict, --border, --radius,
+ *   and dark text (#18181B) on --primary and --strict fills
+ *   (--primary-foreground, --strict-foreground).
+ * - The MVP mockup (dark theme only): --popover (the tray menu, #1A1A1E),
+ *   --secondary and --accent (the active item of the sidebar and of menus,
+ *   #26262B), --muted (badges, #222226), --input (input borders and the
+ *   unchecked switch, #3F3F46), --sidebar (#111114), --sidebar-accent
+ *   (#26262B) and --chart-4 (#8B9CF7).
+ * - Derived: every light value not in docs/ui-stack.md, picked from the same
+ *   zinc grays as the table so that each surface keeps its place between
+ *   --background and --foreground; --break-foreground, dark text like the
+ *   other fills; --destructive (red 600 and red 400, distinct from the focus
+ *   red); --ring, gray enough to show the keyboard focus on every surface;
+ *   and the variables written as var(), which reuse a token above.
+ *
+ * Text contrast: every *-foreground on its surface, and --muted-foreground
+ * on --background and --card, reaches 4.5:1 (WCAG 2.2 AA) in both themes;
+ * tests/acceptance/t0-9-design-tokens.spec.ts checks it. Known gap: the
+ * light --primary, --break and --strict used as text on the light
+ * background reach only 3.75, 2.94 and 1.95:1. Use them as fills (with
+ * their -foreground text) or for icons and borders; text variants for them
+ * come with the screens in phase F3.
+ *
+ * The shadcn-vue CLI writes its own `:root` and `.dark` variables into
+ * main.css when it adds some components; move them here with Bastion's
+ * values (CONTRIBUTING.md, "Adding shadcn-vue components").
+ */
+
+:root {
+  --radius: 0.75rem;
+
+  --background: #fafaf9;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --card-foreground: #18181b;
+  --popover: #ffffff;
+  --popover-foreground: #18181b;
+
+  /* Focus phase and primary actions. */
+  --primary: #e5484d;
+  --primary-foreground: #18181b;
+  /* Break phases and healthy status. */
+  --break: #12a594;
+  --break-foreground: #18181b;
+  /* Strict mode and the lock. */
+  --strict: #f5a524;
+  --strict-foreground: #18181b;
+
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #dc2626;
+
+  --border: #e4e4e7;
+  --input: #d4d4d8;
+  --ring: #71717a;
+
+  /* Charts: the phases first, as the history screen shows them. */
+  --chart-1: var(--primary);
+  --chart-2: var(--break);
+  --chart-3: var(--strict);
+  --chart-4: #6366f1;
+  --chart-5: var(--muted-foreground);
+
+  --sidebar: #f4f4f5;
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: #e4e4e7;
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+/* Only the values that change; the var() ones above follow them. */
+.dark {
+  --background: #0c0c0e;
+  --foreground: #f4f4f5;
+  --card: #16161a;
+  --card-foreground: #f4f4f5;
+  --popover: #1a1a1e;
+  --popover-foreground: #f4f4f5;
+
+  --primary: #f2555a;
+  --primary-foreground: #18181b;
+  --break: #1fc7b1;
+  --break-foreground: #18181b;
+  --strict: #f7b955;
+  --strict-foreground: #18181b;
+
+  --secondary: #26262b;
+  --secondary-foreground: #f4f4f5;
+  --muted: #222226;
+  --muted-foreground: #a1a1aa;
+  --accent: #26262b;
+  --accent-foreground: #f4f4f5;
+  --destructive: #f87171;
+
+  --border: #27272a;
+  --input: #3f3f46;
+  --ring: #a1a1aa;
+
+  --chart-4: #8b9cf7;
+
+  --sidebar: #111114;
+  --sidebar-accent: #26262b;
+}
+
+/*
+ * Tailwind utilities for Bastion's own tokens (bg-break, text-strict,
+ * text-strict-foreground, ...) and its fonts (font-sans, font-mono).
+ * `inline` makes the color utilities read the variables above, so they
+ * follow the theme. main.css maps the shadcn-vue variables the same way.
+ */
+@theme inline {
+  --color-break: var(--break);
+  --color-break-foreground: var(--break-foreground);
+  --color-strict: var(--strict);
+  --color-strict-foreground: var(--strict-foreground);
+
+  /* Geist and Geist Mono are bundled (fonts.css); the system's fonts are
+     the fallback for characters they lack. The rest of each list is
+     Tailwind's default. */
+  --font-sans:
+    "Geist", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono:
+    "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}

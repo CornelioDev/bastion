@@ -49,9 +49,11 @@ pnpm dlx shadcn-vue@2.9.0 add <name>
 
 Then:
 
-1. Remove the Google Fonts `@import` that the CLI puts at the top of `src/styles/main.css` every time it runs. The app makes no network requests at runtime; `pnpm test` fails while it is there.
-2. Install any package the new component imports that the CLI did not add (it does not add `@unovis/vue` and `@unovis/ts` for `chart`, for example), and check that `pnpm typecheck`, `pnpm lint` and `pnpm test` pass.
-3. Add the component to the gallery if the app uses it.
+1. Remove the Google Fonts `@import` that the CLI puts at the top of `src/styles/main.css` every time it runs. The app makes no network requests at runtime and bundles Geist itself (`src/styles/fonts.css`); `pnpm test` fails while the import is there.
+2. Check what the CLI changed in `src/styles/main.css` (`git diff`). Bastion's design tokens live in `src/styles/tokens.css`, and anything the CLI writes into `main.css` overrides them. Keep the `--color-…: var(--…)` lines it adds to `@theme inline`, but keep Bastion's `--radius-sm` … `--radius-4xl` lines there, offsets from `--radius` ([docs/ui-stack.md](docs/ui-stack.md#design-tokens)), if it rewrites them as multiples of it; `pnpm test` fails when they change. If it wrote `:root` or `.dark` blocks, or a `--font-sans`, delete them, and give any variable that is new in them a value in `tokens.css` for both themes, following that file's top comment (contrast included). `pnpm test` fails when a token from [docs/ui-stack.md](docs/ui-stack.md#design-tokens) or a font changes.
+3. Check what the CLI changed in `package.json`, and remove the packages the app does not use. `form`, for example, adds `zod` and `@vee-validate/zod`, which are left out until a Zod release without known advisories works with VeeValidate (`pnpm audit`).
+4. Install any package the new component imports that the CLI did not add (it does not add `@unovis/vue` and `@unovis/ts` for `chart`, for example), and check that `pnpm typecheck`, `pnpm lint` and `pnpm test` pass.
+5. Add the component to the gallery if the app uses it.
 
 To move to a newer CLI version, regenerate every component with it (`add <names...> --overwrite`), replace the body of `src/styles/shadcn-vue.css` with that version's `dist/tailwind.css` from the `shadcn-vue` package, and update the version here and in that file's header.
 
