@@ -573,7 +573,7 @@ const onSubmit = handleSubmit((values) => {
             <Sidebar collapsible="none" class="rounded-lg border">
               <SidebarContent>
                 <SidebarGroup>
-                  <SidebarGroupLabel>Bastion</SidebarGroupLabel>
+                  <SidebarGroupLabel>Keitora</SidebarGroupLabel>
                   <SidebarMenu>
                     <SidebarMenuItem v-for="item in sidebarItems" :key="item">
                       <SidebarMenuButton :is-active="item === 'Timer'">
