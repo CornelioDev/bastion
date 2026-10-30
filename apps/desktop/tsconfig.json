@@ -10,5 +10,13 @@
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.test.json" },
     { "path": "./tsconfig.node.json" }
-  ]
+  ],
+  // Not used by the build, which only follows the references: the shadcn-vue
+  // CLI reads the `@/` import alias from this file. Keep it in sync with
+  // tsconfig.app.json and the `resolve.alias` in vite.config.ts.
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
 }
