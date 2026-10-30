@@ -104,6 +104,46 @@ Toasts are 12px like cards: `Sonner.vue` gives them the `rounded-2xl` class, but
 8. **Block page** (extension) — blocked site, remaining time.
 9. **Tray menu** — remaining time and quick actions.
 
-Visual reference (dark theme): **[MVP mockup](https://claude.ai/artifact/6ieEt3wWHpio293sGTdGwC)**. When this document and the mockup disagree on visuals, the mockup wins; tokens above are the same values it uses.
+### Mockup images
 
-> The mockup link is private to the maintainer. Before the repository goes public, export each screen to `docs/assets/mockups/` and link those images here (task T-0.12).
+The visual reference for these screens is the images below, exported from the MVP mockup, in dark theme and with Spanish text. When this document and the images disagree on visuals, the images win, with these exceptions: the product name is Keitora (the images still show the old name, Bastion); the radius scale above applies, not the corner sizes in the images; and on the Sites tab, the "keep blocking during breaks" block must stay inside the card (the image shows an overflow inherited from the mockup, not intended design). The color tokens above are the same values the images use. Source canvas (private to the maintainer): [MVP mockup](https://claude.ai/artifact/6ieEt3wWHpio293sGTdGwC).
+
+**1. Timer (idle)**
+
+![Timer screen at rest: a 25:00 ring, focus and break durations, blocklist and preset selectors, the strict mode toggle, a Start button and today's totals.](assets/mockups/01-timer-idle.png)
+
+**2. Strict confirmation**
+
+![Strict session confirmation dialog over the timer screen: what cannot be undone, end time, total duration, what gets blocked, an acknowledgment checkbox and the Cancel and Start actions.](assets/mockups/02-strict-confirmation.png)
+
+**3. Active session**
+
+![Active strict session: a lock banner, the 14:32 ring with its phase and cycle, disabled Pause and Stop buttons with an explanation, and the targets and attempts blocked this session.](assets/mockups/03-active-session.png)
+
+**4. Blocklists**
+
+![Blocklists screen on the Sites tab: the lists on the left and, on the right, a field to add a site above the blocked domains.](assets/mockups/04-blocklists-sites.png)
+
+![Blocklists screen on the Apps tab: an Add application button above the blocked applications with their executables.](assets/mockups/04-blocklists-apps.png)
+
+![Blocklists screen on the Exceptions tab: two allowed addresses, each with the blocked site it falls under.](assets/mockups/04-blocklists-exceptions.png)
+
+**5. Add application**
+
+![Add application dialog over the blocklists screen: a search field, running and installed applications with checkboxes, and the Browse, Cancel and Add actions.](assets/mockups/05-add-application.png)
+
+**6. History**
+
+![History screen: totals for the last 7 days, a bar chart of focus sessions per day and the most-attempted targets.](assets/mockups/06-history.png)
+
+**7. Settings**
+
+![Settings screen: timer durations and cycles, behavior switches, browser extension status and the blocking service status.](assets/mockups/07-settings.png)
+
+**8. Block page (extension)**
+
+![Browser block page for youtube.com: a shield icon, the remaining time, the current phase and cycle, and a notice that strict mode prevents unblocking until 14:10.](assets/mockups/08-block-page.png)
+
+**9. Tray menu**
+
+![Tray menu: remaining time, phase and progress at the top, strict session end time, open window action, disabled Stop and Skip actions, blocklists and close window.](assets/mockups/09-tray-menu.png)
