@@ -15,7 +15,7 @@ In short:
 1. Find the active phase and next task in [docs/roadmap.md](docs/roadmap.md) → **Current status** (respect `Depends on:`).
 2. Never modify acceptance tests (`**/tests/acceptance*`) unless you are the QA engineer.
 3. Nothing is done until `just check` passes, QA and security both return PASS, and the maintainer approves.
-4. On approval: tick the task, update **Current status**, add a `CHANGELOG.md` entry if user-visible, add an ADR in `docs/adr/` for architectural decisions, then open a GitHub pull request titled with a Conventional Commit referencing the task (`feat(core): add pomodoro state machine (T-1.3)`) and squash-merge it once the required checks pass. The squash keeps the sign-off (`-s`) of the branch's commits. Never push to `main` directly; its ruleset has no bypass ([CONTRIBUTING.md](CONTRIBUTING.md#pull-requests)).
+4. On approval: tick the task, update **Current status**, add a `CHANGELOG.md` entry if user-visible, add an ADR in `docs/adr/` for architectural decisions, then open a GitHub pull request titled with a Conventional Commit referencing the task (`feat(core): add pomodoro state machine (T-1.3)`) and squash-merge it once the required checks pass. The squash keeps the sign-off (`-s`) of the branch's commits. Never push to `main` directly; its ruleset's `pull_request` rule requires a pull request ([CONTRIBUTING.md](CONTRIBUTING.md#pull-requests)).
 5. If blocked, mark the task `[~]`, write the reason in **Current status**, and stop.
 
 Task states: `[ ]` todo · `[~]` in progress / blocked · `[x]` done.
@@ -96,7 +96,7 @@ pnpm tauri dev
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 # Tests of the Node.js scripts
-node --test scripts/check-acceptance-tests.spec.mjs scripts/check-npm-licenses.spec.mjs scripts/check-unit-test-layout.spec.mjs
+node --test scripts/check-acceptance-tests.spec.mjs scripts/check-npm-audit.spec.mjs scripts/check-npm-licenses.spec.mjs scripts/check-unit-test-layout.spec.mjs
 
 # Run the service without installing it (development)
 cargo run -p bastion-service -- --console

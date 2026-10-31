@@ -182,12 +182,18 @@ git commit -s -m "feat(core): …"
 5. Update docs, the roadmap, and `CHANGELOG.md` (`[Unreleased]`) when relevant.
 6. Fill in the PR template. A maintainer squash-merges the PR once the required checks pass.
 
-`main` only changes through pull requests: its ruleset has no bypass, not even for the maintainer, and the repository allows squash merges only. The squash keeps the two things a commit on `main` needs:
+`main` only changes through pull requests: its ruleset has a `pull_request` rule that requires one, with squash merges only and no approvals, as a single maintainer can't approve their own, plus the required status checks. The ruleset's bypass list is empty, so this applies to the maintainer too. The squash keeps the two things a commit on `main` needs:
 
-- **Conventional Commits subject.** The PR title becomes the commit's subject, so the title must follow Conventional Commits and name the task when there is one (`feat(core): add pomodoro state machine (T-1.3)`). No check reads the title, so whoever merges has to look at it.
-- **DCO sign-off.** The commit's message is made of the messages of the PR's commits, with their `Signed-off-by` lines, and the DCO app checks those commits on the PR. If you rewrite the message when merging, keep a `Signed-off-by` line in it.
+- **Conventional Commits subject.** The PR title becomes the commit's subject, followed by the ` (#N)` that GitHub appends, so the title must follow Conventional Commits and name the task when there is one: `feat(core): add pomodoro state machine (T-1.3)` becomes `feat(core): add pomodoro state machine (T-1.3) (#12)`. No check reads the title, so whoever merges has to look at it.
+- **DCO sign-off.** The DCO app checks the PR's commits. Their `Signed-off-by` lines reach `main` only because the repository's `squash_merge_commit_message` setting is `COMMIT_MESSAGES`, which copies the commits' messages into the squash commit. Changing that setting silently loses the sign-off, and so does rewriting the message when merging without keeping such a line.
 
-From the command line, with the address you sign off with, so that GitHub doesn't pick another address of your account as the author:
+Before merging, ask GitHub what the squash commit will say, which changes nothing. The headline must be the Conventional Commits subject and the body must have the `Signed-off-by` lines:
+
+```bash
+gh api graphql -F number=<number> -f query='query($number: Int!) { repository(owner: "CornelioDev", name: "bastion") { pullRequest(number: $number) { viewerMergeHeadlineText(mergeType: SQUASH) viewerMergeBodyText(mergeType: SQUASH) } } }'
+```
+
+Then merge from the command line, with the address you sign off with, so that GitHub doesn't pick another address of your account as the author:
 
 ```bash
 gh pr merge <number> --squash --delete-branch --author-email <email>
@@ -201,7 +207,7 @@ gh pr merge <number> --squash --delete-branch --author-email <email>
 |---|---|---|
 | `just check` | Formatting, lints, unit test layout, tests, `cargo deny`, the frontend packages, and the tests of the scripts | `just check` |
 | `just coverage` | 90 % of the lines of `bastion-core` and `bastion-ipc`; a report for the frontend packages | `just coverage` |
-| `npm dependencies` | Licenses (policy in [`scripts/npm-license-policy.mjs`](scripts/npm-license-policy.mjs)) and `pnpm audit` of every npm dependency, development ones included | `just npm-dependencies` |
+| `npm dependencies` | Licenses (policy in [`scripts/npm-license-policy.mjs`](scripts/npm-license-policy.mjs)) and `pnpm audit` of every npm dependency, development ones included. The license result relies on what each package declares in its `package.json`; nothing reads the license texts | `just npm-dependencies` |
 | `Acceptance tests` | [The rule below](#acceptance-tests-change-only-in-test-commits); pull requests only | `just check-acceptance-tests origin/main` |
 | `Analyze (rust)`, `Analyze (javascript-typescript)`, `Upload (…)` | [CodeQL](#security-checks) | Nothing to run |
 
@@ -209,8 +215,12 @@ gh pr merge <number> --squash --delete-branch --author-email <email>
 
 ### What CI proves
 
-On a pull request, GitHub runs the workflows, the `justfile` and the scripts as that pull request has them. A pull request that edits any of them can make a check pass, or remove it, so CI proves little about such a change, and **a human has to catch it in review**. Look closely at any change to `.github/`, `justfile`, `scripts/`, `deny.toml`, `rust-toolchain.toml` and the package configs.
+On a pull request, GitHub runs the workflows, the `justfile` and the scripts as that pull request has them. A pull request that edits any of them can make a check pass, or remove it, so CI proves little about such a change, and **a human has to catch it in review**. Look closely at any change to `.github/`, `justfile`, `scripts/`, `deny.toml`, `rust-toolchain.toml`, `Cargo.toml`, `clippy.toml`, `.cargo/config.toml`, any `build.rs`, `pnpm-workspace.yaml`, `.pnpmfile.cjs`, the lockfiles (`Cargo.lock`, `pnpm-lock.yaml`) and the package configs.
 
+- A required check is satisfied by its name. A pull request can keep `name: just check` with `run: exit 0`, or add a workflow with a job of that name, and the check passes.
+- A job skipped with `if: false` counts as passed.
+- A pull request from a fork needs the maintainer's approval before its workflows run, so read its `.github/` diff before approving.
+- With one maintainer no review is required, so `CODEOWNERS` blocks nothing.
 - `Acceptance tests` runs the script from the base branch, with no file of the pull request on disk, so editing the script or the `justfile` doesn't change its result. Editing `ci.yml` still does.
 - `scripts/check-unit-test-layout.mjs` and `scripts/unit-test-layout-rules.mjs` stay as the pull request has them: they catch accidents and ordinary code, not someone working around them. Running the base's copy wouldn't change that, as it would still build and read the pull request's code, in a job that the `justfile` and `ci.yml` of the pull request define. The same goes for `scripts/npm-license-policy.mjs`.
 
@@ -234,7 +244,7 @@ This catches accidental changes, mostly by agents. It doesn't prove who wrote a 
 
 ### Security checks
 
-- **CodeQL** ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)) analyzes the Rust and TypeScript/JavaScript code on every pull request, on every push to `main` and weekly. Results appear under the repository's Security tab and on the pull request. A pull request from a fork or from Dependabot may have a token that can't upload them; its check still passes, and its results stay in the run's `sarif-*` artifacts until the code is analyzed again on `main`. The job that runs CodeQL, and with it the build scripts and proc macros of a pull request, has no permission to write results; a second job with no checkout uploads them. It only runs on GitHub, so there is nothing to run locally. The repository's "default setup" for code scanning must stay off, because it conflicts with this workflow.
+- **CodeQL** ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)) analyzes the Rust and TypeScript/JavaScript code on every pull request, on every push to `main` and weekly. Results appear under the repository's Security tab and on the pull request. A pull request from a fork or from Dependabot may have a token that can't upload them; its check still passes, and its results stay in the run's `sarif-*` artifacts until the code is analyzed again on `main`. The job that runs CodeQL, and with it the build scripts and proc macros of a pull request, has no permission to write results; a second job with no checkout uploads them. The required CodeQL checks prove that the analysis ran, not that its results are clean, so alerts are reviewed by hand. It only runs on GitHub, so there is nothing to run locally. The repository's "default setup" for code scanning must stay off, because it conflicts with this workflow.
 - **Secret scanning with push protection** is on for the repository; see [SECURITY.md](SECURITY.md#secret-scanning).
 
 ## Labels
