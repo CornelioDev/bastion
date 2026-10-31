@@ -55,9 +55,12 @@ Acceptance tests are the contract between the maintainer and the developer, so o
 
 | Code | Acceptance tests (QA only) | Unit tests (developer) |
 |---|---|---|
-| Rust crates | `crates/<crate>/tests/acceptance_t<phase>_<n>.rs` | `#[cfg(test)] mod tests` in the source file |
+| `bastion-core`, `bastion-ipc` | `crates/<crate>/tests/acceptance_t<phase>_<n>.rs` | Sibling file declared with `#[cfg(test)] mod tests;` (`src/engine.rs` with `src/engine/tests.rs`) |
+| Other Rust crates | `crates/<crate>/tests/acceptance_t<phase>_<n>.rs` | `#[cfg(test)] mod tests` in the source file |
 | Desktop UI | `apps/desktop/tests/acceptance/` | `*.spec.ts` next to the file |
 | Extension | `extension/tests/acceptance/` | `*.spec.ts` next to the file |
+
+`bastion-core` and `bastion-ipc` keep unit tests in separate files because `just coverage` doesn't measure those, so its 90 % covers production code only; they are still `#[cfg(test)]` modules, so the test lint exemptions in [AGENTS.md](../AGENTS.md#writing-rust-tests) apply.
 
 QA validation fails automatically if acceptance tests changed after the QA commit. Changing them requires the maintainer's explicit approval, recorded in the report.
 

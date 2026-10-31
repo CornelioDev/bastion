@@ -15,5 +15,14 @@ export default defineConfig({
     // A test that hangs still fails, just later.
     testTimeout: 30_000,
     hookTimeout: 30_000,
+    // Only used by `pnpm test:coverage` (`just coverage`); `pnpm test` does not
+    // measure anything. The report is informative: no number is enforced here.
+    // `include` also lists files that no test loads, so that they show up as
+    // uncovered.
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      include: ["src/**/*.ts"],
+    },
   },
 });

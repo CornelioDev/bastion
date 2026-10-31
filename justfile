@@ -59,3 +59,37 @@ extension:
     pnpm --dir extension typecheck
     pnpm --dir extension test
     pnpm --dir extension build
+
+# Not part of `check`, which stays the fast gate: this needs extra tools
+# (cargo-llvm-cov, llvm-tools), compiles the crates a second time and slows the
+# frontend tests down. CI runs it as a job of its own.
+
+# Measure test coverage; fails if bastion-core or bastion-ipc is below 90 %
+coverage: coverage-rust coverage-desktop coverage-extension
+
+# Each crate has to reach 90 % of its lines on its own, so a well-tested crate
+# cannot make up for the other. `-p` measures only that crate's files: not
+# dependencies, not other workspace crates. `--all-features` measures code under
+# `#[cfg(feature = "...")]`, but not code under `#[cfg(not(feature = "..."))]`,
+# which it stops compiling (CONTRIBUTING.md lists all that the gate doesn't
+# measure). cargo-llvm-cov also leaves out, at any depth, files named tests.rs or
+# *_tests.rs and directories named tests, examples or benches: those names must
+# hold only test code, never product code. Unit tests of these
+# two crates live in such files, so that the 90 % measures production code only.
+# A crate with no functions at all is an error ("no coverage data found"), not a
+# pass; see the test in each crate's lib.rs.
+
+# Fail if line coverage of bastion-core or bastion-ipc is below 90 %
+coverage-rust:
+    cargo llvm-cov --locked --all-features -p bastion-core --fail-under-lines 90
+    cargo llvm-cov --locked --all-features -p bastion-ipc --fail-under-lines 90
+
+# Report the desktop app's test coverage in apps/desktop/coverage; no minimum
+coverage-desktop:
+    pnpm --dir apps/desktop install --frozen-lockfile
+    pnpm --dir apps/desktop test:coverage
+
+# Report the extension's test coverage in extension/coverage; no minimum
+coverage-extension:
+    pnpm --dir extension install --frozen-lockfile
+    pnpm --dir extension test:coverage

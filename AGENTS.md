@@ -57,7 +57,7 @@ bastion/
 | Vue | [Vue style guide](https://vuejs.org/style-guide/) priority A–B; Composition API with `<script setup lang="ts">`; `PascalCase` single-file components; composables named `useXxx` in `src/composables/` |
 | TypeScript | `strict: true`, no `any` without a justifying comment |
 | Formatting | `rustfmt`, Prettier (TS/Vue/JSON/MD), `.editorconfig` |
-| Tests | Rust: `cargo test` (unit next to code, integration in `tests/`; see *Writing Rust tests* below). Frontend: Vitest + Vue Test Utils |
+| Tests | Rust: `cargo test` (unit next to code, in a separate file in `bastion-core` and `bastion-ipc`; integration in `tests/`; see *Writing Rust tests* below). Frontend: Vitest + Vue Test Utils |
 | Accessibility | WCAG 2.2 AA: keyboard reachable, visible focus, labels on all controls |
 
 ### Writing Rust tests
@@ -65,6 +65,7 @@ bastion/
 The workspace lints that keep panics out of the service also apply to test code, with a few exemptions. To keep `clippy -D warnings` passing:
 
 - Integration-test files (including `crates/<crate>/tests/acceptance_t<phase>_<n>.rs`) start with the SPDX header, then a `//!` doc comment (acceptance tests list which criterion each test covers), then `#![cfg(test)]`. The `//!` satisfies `missing_docs`; `#![cfg(test)]` lets helper functions in the file use `unwrap`, `expect`, `panic!` and indexing, as `#[test]` functions and `#[cfg(test)]` modules already can.
+- Unit tests go in a `#[cfg(test)] mod tests` in the source file, except in `bastion-core` and `bastion-ipc`, where they live in a sibling file declared with `#[cfg(test)] mod tests;` (`src/engine.rs` with `src/engine/tests.rs`, `src/lib.rs` with `src/tests.rs`). `just coverage` doesn't measure files named `tests.rs`, so the 90 % covers production code only instead of counting test lines. These files start with the SPDX header and need no `//!` or `#![cfg(test)]`: they are `#[cfg(test)]` modules, so the same lint exemptions apply. The one exception is the inline placeholder test in each of those two crates' `lib.rs`, until the crate has real code.
 - Don't mark items `pub` in test files; `pub` items at a test crate's root trigger `missing_docs` and `missing_debug_implementations`.
 - These lints apply to all test code too; use the alternative:
   - `unreachable!` → `panic!("…")`; never commit `todo!` or `unimplemented!`.
@@ -96,5 +97,7 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 # Run the service without installing it (development)
 cargo run -p bastion-service -- --console
 ```
+
+`just coverage` is separate from `just check`, because it needs [`cargo-llvm-cov`](https://github.com/taiki-e/cargo-llvm-cov) (`cargo install cargo-llvm-cov --locked`). It fails if line coverage of `bastion-core` or `bastion-ipc`, each on its own, is below 90 %, and reports the desktop app's and the extension's coverage with no minimum (`pnpm test:coverage` in each package).
 
 `lefthook` runs format and lint checks on commit; CI runs everything on `windows-latest`.

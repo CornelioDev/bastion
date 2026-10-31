@@ -22,6 +22,7 @@ Requirements (Windows 10 or 11):
 - [Node.js](https://nodejs.org) LTS and [pnpm](https://pnpm.io).
 - [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) (WebView2, MSVC build tools).
 - [`just`](https://github.com/casey/just), [`cargo-deny`](https://github.com/EmbarkStudios/cargo-deny) and [`lefthook`](https://github.com/evilmartians/lefthook).
+- [`cargo-llvm-cov`](https://github.com/taiki-e/cargo-llvm-cov), only for `just coverage`: `cargo install cargo-llvm-cov --locked`. The `llvm-tools` component it needs comes with the pinned toolchain.
 
 ```bash
 git clone https://github.com/CornelioDev/bastion.git
@@ -44,6 +45,25 @@ just check
 ```
 
 It stops at the first check that fails and exits with an error. It installs the desktop app's and the extension's dependencies from their lockfiles first, and fails if a lockfile doesn't match its `package.json`, or if `Cargo.lock` is missing or doesn't match the `Cargo.toml` files. After changing a dependency, run `pnpm install` in that package, or `cargo check` for a Rust one, and commit the updated lockfile.
+
+To measure test coverage, which `just check` does not do:
+
+```bash
+just coverage
+```
+
+It fails if the tests cover less than 90 % of the lines of `bastion-core` or of `bastion-ipc`, each crate counted on its own, with all features on. So that the 90 % measures production code only, the unit tests of these two crates live in a separate file, declared with `#[cfg(test)] mod tests;` (`src/engine.rs` with `src/engine/tests.rs`); lines of a test module inside a source file would count as covered code ([AGENTS.md](AGENTS.md#writing-rust-tests)).
+
+What the gate doesn't measure:
+
+- Files named `tests.rs` or `*_tests.rs`, and any directory named `tests`, `examples` or `benches`, at any depth. Those names must hold only test code, never product code, or that code goes unmeasured.
+- Code that doesn't compile on Windows, such as `#[cfg(unix)]`.
+- Code under `#[cfg(not(test))]`, which is compiled only outside tests. That includes a real function that a test double replaces during tests.
+- Code under `#[cfg(not(feature = "..."))]`, which isn't compiled with `--all-features`. Code under `#[cfg(feature = "...")]` is measured.
+
+A crate with no functions at all fails with "no coverage data found", so `bastion-core` and `bastion-ipc` each have one inline placeholder test, the only inline test allowed in them, until they have real code.
+
+The report for the desktop app and the extension has no minimum; open `apps/desktop/coverage/index.html` or `extension/coverage/index.html` for details.
 
 On Windows without [long paths](https://learn.microsoft.com/windows/win32/fileio/maximum-file-path-limitation) enabled, keep the clone's root path under about 133 characters. From that length on, Vitest fails with `ERR_PACKAGE_IMPORT_NOT_DEFINED` and `"#module-evaluator"`, because the paths inside `node_modules` go over the limit.
 
