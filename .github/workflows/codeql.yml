@@ -4,6 +4,14 @@
 # setup" for code scanning must stay off: GitHub rejects results from this
 # workflow while it is on.
 #
+# Two jobs, so that code from a pull request never runs next to that permission
+# (T-0.13). `analyze` runs CodeQL, which for Rust means running the build.rs files
+# and proc macros of the pull request, with `contents: read` only. `upload` holds
+# `security-events: write`, has no checkout, and only reads the SARIF file that
+# `analyze` left as an artifact. That file can be forged by the code it describes,
+# so a pull request can falsify its own results, but no more than that, and the run
+# on `main` after merging analyzes the code again.
+#
 # Every action is pinned to a full commit hash, with its version in a comment;
 # Dependabot updates both (.github/dependabot.yml).
 #
@@ -38,9 +46,11 @@ jobs:
     # bastion-service will be.
     runs-on: windows-latest
     timeout-minutes: 60
+    # Not even `security-events: read`, which would let the pull request's code read
+    # the repository's alerts. Without it the action warns that it can't ask for its
+    # experimental features, and carries on with the defaults.
     permissions:
       contents: read
-      security-events: write
     strategy:
       # One language failing must not cancel the results of the other.
       fail-fast: false
@@ -56,13 +66,79 @@ jobs:
       # still runs build.rs files and proc macros through rust-analyzer. It needs
       # rustup and cargo, which windows-latest includes.
       - name: Set up CodeQL
-        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
           languages: ${{ matrix.language }}
           build-mode: none
           queries: security-extended
 
+      # `post-processed-sarif-path` is the form of the results that `upload` needs:
+      # the fingerprints that track an alert from one run to the next are computed
+      # from the source files, and `upload` has none. The database upload is off
+      # because it needs `security-events: write`; alerts don't use it.
       - name: Analyze
-        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
           category: "/language:${{ matrix.language }}"
+          upload: never
+          upload-database: false
+          post-processed-sarif-path: ${{ runner.temp }}/sarif
+
+      # Downloadable by anyone, like everything from a public repository's runs.
+      # That reveals nothing the public code and CodeQL's public queries don't.
+      - name: Keep the results for the upload job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sarif-${{ matrix.language }}
+          path: ${{ runner.temp }}/sarif
+          if-no-files-found: error
+          retention-days: 7
+
+  upload:
+    name: Upload (${{ matrix.language }})
+    needs: analyze
+    # Each language uploads what it has, even if the other one failed. A language
+    # whose analysis failed has no artifact, so its upload fails too.
+    #
+    # Conditions on this job would skip it for the pull requests below, and a job
+    # skipped by its own `if` reports under its unexpanded name, `Upload (${{ matrix.language }})`,
+    # which would leave a required `Upload (rust)` pending forever. So this job always
+    # runs, and the tolerance is on the upload step.
+    if: ${{ !cancelled() }}
+    # Windows only so that `checkout_path`, whose default is the workspace, is the
+    # path `analyze` used, for any absolute path in the file. This job doesn't read
+    # files from it.
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [rust, javascript-typescript]
+    steps:
+      - name: Download the results
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: sarif-${{ matrix.language }}
+          path: ${{ runner.temp }}/sarif
+
+      # GitHub can give a pull request from a fork, or a run started by Dependabot, a
+      # read-only token whatever this file asks for. Their upload may then be rejected,
+      # which must not fail a required check they can do nothing about. Their results
+      # stay in the artifact of `analyze`, and in the Security tab once merged and
+      # analyzed on `main`. Anywhere else, a rejected upload is a real failure.
+      #
+      # With no checkout, the action can't read `ref` and `sha` from Git, so they
+      # are given: the commit that `analyze` checked out by default.
+      - name: Upload to code scanning
+        continue-on-error: >-
+          ${{ github.actor == 'dependabot[bot]' ||
+          (github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name != github.repository) }}
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          sarif_file: ${{ runner.temp }}/sarif
+          category: "/language:${{ matrix.language }}"
+          ref: ${{ github.ref }}
+          sha: ${{ github.sha }}
