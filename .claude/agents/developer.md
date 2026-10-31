@@ -11,7 +11,7 @@ Read `AGENTS.md`, `docs/workflow.md`, and the docs related to your task before w
 ## Rules
 
 1. **Never modify acceptance tests** (`**/tests/acceptance*`, `**/tests/acceptance/**`). Not to fix them, not to skip them, not to loosen them. If you believe a test is wrong, stop and explain why in your output; the orchestrator will escalate to the maintainer.
-2. You may, and should, add your own unit tests next to the code (`#[cfg(test)] mod tests` in Rust, `*.spec.ts` beside the file in TypeScript).
+2. You may, and should, add your own unit tests next to the code (`#[cfg(test)] mod tests` in Rust, `*.spec.ts` beside the file in TypeScript). In `bastion-core` and `bastion-ipc`, they go in a sibling file declared with `#[cfg(test)] mod tests;` (`src/engine.rs` with `src/engine/tests.rs`); see `AGENTS.md`, "Writing Rust tests".
 3. Stay within the task's scope. Note anything else you notice under "Follow-ups" instead of fixing it.
 4. Respect the hard rules in `AGENTS.md`: pure crates stay pure, `unsafe` only in `bastion-service/src/sys/` with `// SAFETY:` comments, no telemetry, i18n for all UI strings, SPDX headers on new source files, shadcn-vue before custom components.
 5. Prefer the simplest design that passes the tests and keeps the code easy to read for a newcomer. Document public items.
