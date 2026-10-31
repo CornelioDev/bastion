@@ -8,9 +8,11 @@
 # (T-0.13). `analyze` runs CodeQL, which for Rust means running the build.rs files
 # and proc macros of the pull request, with `contents: read` only. `upload` holds
 # `security-events: write`, has no checkout, and only reads the SARIF file that
-# `analyze` left as an artifact. That file can be forged by the code it describes,
-# so a pull request can falsify its own results, but no more than that, and the run
-# on `main` after merging analyzes the code again.
+# `analyze` left as an artifact. That file can be forged by the code it describes.
+# A build.rs or proc macro in a pull request can falsify that pull request's results.
+# Once a human has merged one, it runs on `main` too, and can falsify the results
+# there. `category` is no guarantee: the upload action keeps an
+# `automationDetails.id` already in the file, so a forged file can name another one.
 #
 # Every action is pinned to a full commit hash, with its version in a comment;
 # Dependabot updates both (.github/dependabot.yml).
@@ -66,7 +68,7 @@ jobs:
       # still runs build.rs files and proc macros through rust-analyzer. It needs
       # rustup and cargo, which windows-latest includes.
       - name: Set up CodeQL
-        uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           languages: ${{ matrix.language }}
           build-mode: none
@@ -77,7 +79,7 @@ jobs:
       # from the source files, and `upload` has none. The database upload is off
       # because it needs `security-events: write`; alerts don't use it.
       - name: Analyze
-        uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           category: "/language:${{ matrix.language }}"
           upload: never
@@ -123,8 +125,8 @@ jobs:
           name: sarif-${{ matrix.language }}
           path: ${{ runner.temp }}/sarif
 
-      # GitHub can give a pull request from a fork, or a run started by Dependabot, a
-      # read-only token whatever this file asks for. Their upload may then be rejected,
+      # GitHub can give a pull request from a fork, or from Dependabot, a read-only
+      # token whatever this file asks for. Their upload may then be rejected,
       # which must not fail a required check they can do nothing about. Their results
       # stay in the artifact of `analyze`, and in the Security tab once merged and
       # analyzed on `main`. Anywhere else, a rejected upload is a real failure.
@@ -133,10 +135,10 @@ jobs:
       # are given: the commit that `analyze` checked out by default.
       - name: Upload to code scanning
         continue-on-error: >-
-          ${{ github.actor == 'dependabot[bot]' ||
-          (github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name != github.repository) }}
-        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+          ${{ github.event_name == 'pull_request' &&
+          (github.event.pull_request.head.repo.full_name != github.repository ||
+          github.event.pull_request.user.login == 'dependabot[bot]') }}
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: ${{ runner.temp }}/sarif
           category: "/language:${{ matrix.language }}"
