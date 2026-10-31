@@ -27,6 +27,10 @@ indent_size = 4
 [*.toml]
 indent_size = 4
 
+# justfile: four spaces, as `just --fmt` uses.
+[justfile]
+indent_size = 4
+
 # Windows batch files keep CRLF (see .gitattributes).
 [*.{bat,cmd}]
 end_of_line = crlf

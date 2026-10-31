@@ -35,8 +35,6 @@ Reports to the maintainer are written in **Spanish**. Everything committed to th
 
 ### Tasks without testable behavior
 
-Until **T-0.16** creates the `justfile`, "run `just check`" means running whichever commands from the *Commands* section of `AGENTS.md` already apply to the code that exists.
-
 Some tasks (mostly in F0: tooling, configuration, CI) have no product behavior to test. For those, `qa-engineer` skips `write-tests` and instead lists in its validation the exact commands that prove the acceptance criteria (for example, `cargo build --workspace` succeeds), runs them, and reports their output. The rest of the loop is unchanged.
 
 ### Running a group of tasks

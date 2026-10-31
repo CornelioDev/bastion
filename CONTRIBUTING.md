@@ -37,6 +37,16 @@ cargo run -p bastion-service -- --console
 pnpm --dir apps/desktop tauri dev
 ```
 
+To run every check, from any terminal (see [`justfile`](justfile); `just --list` shows the recipes for running a part of them):
+
+```bash
+just check
+```
+
+It stops at the first check that fails and exits with an error. It installs the desktop app's and the extension's dependencies from their lockfiles first, and fails if a lockfile doesn't match its `package.json`, or if `Cargo.lock` is missing or doesn't match the `Cargo.toml` files. After changing a dependency, run `pnpm install` in that package, or `cargo check` for a Rust one, and commit the updated lockfile.
+
+On Windows without [long paths](https://learn.microsoft.com/windows/win32/fileio/maximum-file-path-limitation) enabled, keep the clone's root path under about 133 characters. From that length on, Vitest fails with `ERR_PACKAGE_IMPORT_NOT_DEFINED` and `"#module-evaluator"`, because the paths inside `node_modules` go over the limit.
+
 While the app has no screens yet, a development build (`tauri dev`, or `pnpm --dir apps/desktop dev` in a browser) opens the component gallery, [`apps/desktop/src/dev/ComponentGallery.vue`](apps/desktop/src/dev/ComponentGallery.vue): every shadcn-vue component the app uses, with a button that switches between the light and dark themes. Production builds leave the gallery out.
 
 ### Adding shadcn-vue components

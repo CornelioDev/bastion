@@ -77,7 +77,7 @@ The workspace lints that keep panics out of the service also apply to test code,
 
 ## Commands
 
-`just check` runs everything below and is the single gate used by agents and CI.
+`just check` runs every check below, in order, stopping at the first failure, and is the single gate used by agents and CI. It runs `pnpm install --frozen-lockfile` in each frontend package first, so it also works on a fresh clone whose path is short enough ([CONTRIBUTING.md](CONTRIBUTING.md#development-setup) gives the limit), and it runs the `cargo` checks with `--locked`.
 
 ```bash
 # Rust
