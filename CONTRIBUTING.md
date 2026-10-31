@@ -56,12 +56,36 @@ It fails if the tests cover less than 90 % of the lines of `bastion-core` or of 
 
 What the gate doesn't measure:
 
-- Files named `tests.rs` or `*_tests.rs`, and any directory named `tests`, `examples` or `benches`, at any depth. Those names must hold only test code, never product code, or that code goes unmeasured.
+- Files named `tests.rs` or `*_tests.rs` (`*-tests.rs` as well), and any directory named `tests`, `examples` or `benches`, at any depth. Those names must hold only test code, never product code, or that code goes unmeasured.
 - Code that doesn't compile on Windows, such as `#[cfg(unix)]`.
 - Code under `#[cfg(not(test))]`, which is compiled only outside tests. That includes a real function that a test double replaces during tests.
 - Code under `#[cfg(not(feature = "..."))]`, which isn't compiled with `--all-features`. Code under `#[cfg(feature = "...")]` is measured.
 
 A crate with no functions at all fails with "no coverage data found", so `bastion-core` and `bastion-ipc` each have one inline placeholder test, the only inline test allowed in them, until they have real code.
+
+`just check` enforces this layout in those two crates (`just unit-test-layout`, [`scripts/check-unit-test-layout.mjs`](scripts/check-unit-test-layout.mjs)). It exits with 0 when they follow it, with 1 when they don't (each violation is listed), and with 2 when it can't tell, which is never a pass. It is a guard against accidents and ordinary code, not a sandbox. It fails if:
+
+- The manifest has a target other than the library and integration tests (so no build script, binary, example or bench), a direct proc-macro dependency, or a local dependency (by path or `[patch]`) other than `bastion-ipc` on `bastion-core`, or if another workspace member lives inside the crate's directory. A problem here in either crate stops both builds, as they would run that code.
+- The library, built in the dev profile with all features, reads a file with one of the names above (`rustc/<hash or version>/` as well, which cargo-llvm-cov also leaves out) or a file outside the crate's directory. This comes from what the compiler reports having read, so `#[path]`, `include!` and macros that expand in that build don't get around it.
+- A file only the tests read is one coverage measures. Its lines would add to the score, so a test helper has to be named `tests.rs` or `*_tests.rs`, or be in a directory named `tests`.
+- A build reads a file that is neither Rust nor data (`.json`, `.md`, `.toml`) under a name coverage measures, or a written `#[path]` or `include!` names a file that isn't `.rs`, or a `use` renames `include`. What a macro assembles is listed below.
+- `[profile.test]` makes optimization, debug info, debug assertions or overflow checks differ from dev.
+- A test attribute (`#[test]` and its longer paths, `#[bench]`, `#[test_case]`, any other with `test` in its name) or a `use` of one appears outside a file named `tests.rs` or `*_tests.rs`, or a directory named `tests`, `examples` or `benches`. The placeholder test is the exception, exactly as it is, in each crate's `src/lib.rs`.
+- Anywhere in the crate's directory, test files included, leaving out only a `target` directory directly in it: `#[cfg(not(test))]` or `cfg_attr(test` in any form (`cfg(any(not(test)))`, `cfg![not(test)]`), a `cfg` on `debug_assertions` or on cargo-llvm-cov's own `coverage`, a `$` inside the brackets of a written `cfg`, or `cfg_select!`, `cfg_match!` and `cfg_if!`.
+- `#[cfg(test)]` or `cfg!(test)` appears in a measured file anywhere but directly before `mod tests;`, with no other attribute next to it. A test helper goes in the test file.
+
+So `#[cfg(any(test, feature = "..."))]` is rejected: to share fakes with integration tests or other crates, make it an unconditional `pub` module, such as `pub mod testing;`, whose lines are measured.
+
+Review is still needed for what this can't see:
+
+- What a macro assembles: `#[$name]` called with `test`, `use core::prelude::v1::$name as t;` followed by `#[t]`, `mk!(include)` expanding to `$name!("a.json")`, `#[path = $file]` naming a data file, and a `cfg` whose own name is an argument, as in `#[$c(not($t))]` or `when!(cfg, not(test), ...)`. A `$` is only rejected inside the brackets of a written `cfg`, so that family is not closed.
+- Logic in a `#[macro_export]` macro that only other crates expand, which is unmeasured.
+- Padding: trivially covered lines in an unconditional `pub` module still add to the score.
+- Test macros from a dependency, and what a dependency's macros expand to. A proc macro reached through a dependency is allowed, as `serde` and `thiserror` need one.
+- Code the checked builds don't compile, whatever its name: under `#[cfg(not(feature = "..."))]`, `#[cfg(unix)]`, `target_feature` or `panic`.
+- A `cfg` set from outside the crate, through the environment or `.cargo/config.toml` (`RUSTFLAGS`, `rustc-wrapper`).
+- Product code moved to another crate, which `-p` doesn't measure.
+- A pull request that changes the script itself.
 
 The report for the desktop app and the extension has no minimum; open `apps/desktop/coverage/index.html` or `extension/coverage/index.html` for details.
 

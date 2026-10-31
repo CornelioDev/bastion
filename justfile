@@ -27,7 +27,7 @@ set windows-shell := ["cmd.exe", "/d", "/c"]
 export NoDefaultCurrentDirectoryInExePath := "1"
 
 # Run every check; stops at the first failure
-check: fmt clippy test deny desktop extension test-scripts
+check: fmt clippy unit-test-layout test deny desktop extension test-scripts
 
 # Check the formatting of the Rust code
 fmt:
@@ -36,6 +36,14 @@ fmt:
 # Lint the Rust code; warnings are errors
 clippy:
     cargo clippy --locked --workspace --all-targets -- -D warnings
+
+# Keeps the 90 % of `just coverage` measuring production code: see the top of the
+# script. It builds in target/unit-test-layout, so it doesn't rebuild anything else.
+# It comes after clippy, which shows compile errors in a more readable form.
+
+# Fail if bastion-core or bastion-ipc break the unit test convention
+unit-test-layout:
+    node scripts/check-unit-test-layout.mjs
 
 # Run the Rust tests
 test:
@@ -62,7 +70,7 @@ extension:
 
 # Test the scripts in scripts/ that run on Node.js
 test-scripts:
-    node --test scripts/check-acceptance-tests.spec.mjs
+    node --test scripts/check-acceptance-tests.spec.mjs scripts/check-unit-test-layout.spec.mjs
 
 # Not part of `check`, which has no base to compare a branch to. It is run by hand
 # until T-0.13 adds it to CI for pull requests (with fetch-depth: 0, as it fails on

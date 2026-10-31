@@ -60,7 +60,7 @@ Acceptance tests are the contract between the maintainer and the developer, so o
 | Desktop UI | `apps/desktop/tests/acceptance/` | `*.spec.ts` next to the file |
 | Extension | `extension/tests/acceptance/` | `*.spec.ts` next to the file |
 
-`bastion-core` and `bastion-ipc` keep unit tests in separate files because `just coverage` doesn't measure those, so its 90 % covers production code only; they are still `#[cfg(test)]` modules, so the test lint exemptions in [AGENTS.md](../AGENTS.md#writing-rust-tests) apply.
+`bastion-core` and `bastion-ipc` keep unit tests in separate files because `just coverage` doesn't measure those, so its 90 % covers production code only; they are still `#[cfg(test)]` modules, so the test lint exemptions in [AGENTS.md](../AGENTS.md#writing-rust-tests) apply. `just check` enforces this layout, and reviewers still look for what a build and a text scan can't see ([CONTRIBUTING.md](../CONTRIBUTING.md#development-setup)).
 
 `just check-acceptance-tests <base>`, run by hand until T-0.13 adds it to CI for pull requests, fails if a commit changes these files without a subject starting with `test(`, or changes other files along with them ([CONTRIBUTING.md](../CONTRIBUTING.md#acceptance-tests-change-only-in-test-commits)). That catches accidents; it doesn't prove who wrote a commit.
 

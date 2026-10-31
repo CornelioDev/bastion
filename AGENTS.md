@@ -65,7 +65,7 @@ bastion/
 The workspace lints that keep panics out of the service also apply to test code, with a few exemptions. To keep `clippy -D warnings` passing:
 
 - Integration-test files (including `crates/<crate>/tests/acceptance_t<phase>_<n>.rs`) start with the SPDX header, then a `//!` doc comment (acceptance tests list which criterion each test covers), then `#![cfg(test)]`. The `//!` satisfies `missing_docs`; `#![cfg(test)]` lets helper functions in the file use `unwrap`, `expect`, `panic!` and indexing, as `#[test]` functions and `#[cfg(test)]` modules already can.
-- Unit tests go in a `#[cfg(test)] mod tests` in the source file, except in `bastion-core` and `bastion-ipc`, where they live in a sibling file declared with `#[cfg(test)] mod tests;` (`src/engine.rs` with `src/engine/tests.rs`, `src/lib.rs` with `src/tests.rs`). `just coverage` doesn't measure files named `tests.rs`, so the 90 % covers production code only instead of counting test lines. These files start with the SPDX header and need no `//!` or `#![cfg(test)]`: they are `#[cfg(test)]` modules, so the same lint exemptions apply. The one exception is the inline placeholder test in each of those two crates' `lib.rs`, until the crate has real code.
+- Unit tests go in a `#[cfg(test)] mod tests` in the source file, except in `bastion-core` and `bastion-ipc`, where they live in a sibling file declared with `#[cfg(test)] mod tests;` (`src/engine.rs` with `src/engine/tests.rs`, `src/lib.rs` with `src/tests.rs`). `just coverage` doesn't measure files named `tests.rs`, so the 90 % covers production code only instead of counting test lines. These files start with the SPDX header and need no `//!` or `#![cfg(test)]`: they are `#[cfg(test)]` modules, so the same lint exemptions apply. The one exception is the inline placeholder test in each of those two crates' `lib.rs`, until the crate has real code. `just check` enforces this in those two crates ([CONTRIBUTING.md](CONTRIBUTING.md#development-setup) says what it can't see, which is still for review): the library, in the dev profile with all features, can't compile a file with such a name; a file only tests read must have such a name; `#[test]` goes only in such a file; `#[cfg(test)]` in a measured file goes only directly before `mod tests;`, with no other attribute; and `#[cfg(not(test))]`, `cfg_attr(test` and any `cfg` on `debug_assertions` go nowhere in the crate.
 - Don't mark items `pub` in test files; `pub` items at a test crate's root trigger `missing_docs` and `missing_debug_implementations`.
 - These lints apply to all test code too; use the alternative:
   - `unreachable!` → `panic!("…")`; never commit `todo!` or `unimplemented!`.
@@ -84,6 +84,7 @@ The workspace lints that keep panics out of the service also apply to test code,
 # Rust
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
+node scripts/check-unit-test-layout.mjs  # unit test convention of bastion-core and bastion-ipc
 cargo test --workspace
 cargo deny check                       # licenses, advisories, duplicate deps
 
@@ -95,7 +96,7 @@ pnpm tauri dev
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 # Tests of the Node.js scripts
-node --test scripts/check-acceptance-tests.spec.mjs
+node --test scripts/check-acceptance-tests.spec.mjs scripts/check-unit-test-layout.spec.mjs
 
 # Run the service without installing it (development)
 cargo run -p bastion-service -- --console
