@@ -70,7 +70,7 @@ extension:
 
 # Test the scripts in scripts/ that run on Node.js
 test-scripts:
-    node --test scripts/check-acceptance-tests.spec.mjs scripts/check-npm-licenses.spec.mjs scripts/check-unit-test-layout.spec.mjs
+    node --test scripts/check-acceptance-tests.spec.mjs scripts/check-npm-audit.spec.mjs scripts/check-npm-licenses.spec.mjs scripts/check-unit-test-layout.spec.mjs
 
 # Not part of `check`: a new advisory can fail these with no change in the repository,
 # and CI runs them as a job of its own, which shows both results.
@@ -87,12 +87,12 @@ npm-licenses:
     node scripts/check-npm-licenses.mjs
 
 # Development dependencies count, as they do for cargo-deny, and so do moderate
-# advisories: this has no `--prod` and no `--audit-level` on purpose.
+# advisories: the script has no `--prod` and no `--audit-level` on purpose. It audits
+# both packages even when the first fails, which two recipe lines wouldn't.
 
 # Fail if an npm dependency has a known advisory
 npm-audit:
-    pnpm --dir apps/desktop audit
-    pnpm --dir extension audit
+    node scripts/check-npm-audit.mjs
 
 # Not part of `check`, which has no base to compare a branch to. CI runs the script
 # directly, from the base's copy, for pull requests (.github/workflows/ci.yml). It
