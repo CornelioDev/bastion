@@ -15,7 +15,7 @@ In short:
 1. Find the active phase and next task in [docs/roadmap.md](docs/roadmap.md) → **Current status** (respect `Depends on:`).
 2. Never modify acceptance tests (`**/tests/acceptance*`) unless you are the QA engineer.
 3. Nothing is done until `just check` passes, QA and security both return PASS, and the maintainer approves.
-4. On approval: tick the task, update **Current status**, add a `CHANGELOG.md` entry if user-visible, add an ADR in `docs/adr/` for architectural decisions, squash-merge with a Conventional Commit referencing the task (`feat(core): add pomodoro state machine (T-1.3)`), signed off (`-s`).
+4. On approval: tick the task, update **Current status**, add a `CHANGELOG.md` entry if user-visible, add an ADR in `docs/adr/` for architectural decisions, then open a GitHub pull request titled with a Conventional Commit referencing the task (`feat(core): add pomodoro state machine (T-1.3)`) and squash-merge it once the required checks pass. The squash keeps the sign-off (`-s`) of the branch's commits. Never push to `main` directly; its ruleset has no bypass ([CONTRIBUTING.md](CONTRIBUTING.md#pull-requests)).
 5. If blocked, mark the task `[~]`, write the reason in **Current status**, and stop.
 
 Task states: `[ ]` todo · `[~]` in progress / blocked · `[x]` done.
@@ -78,7 +78,7 @@ The workspace lints that keep panics out of the service also apply to test code,
 
 ## Commands
 
-`just check` runs every check below, in order, stopping at the first failure, and is the single gate used by agents and CI. It runs `pnpm install --frozen-lockfile` in each frontend package first, so it also works on a fresh clone whose path is short enough ([CONTRIBUTING.md](CONTRIBUTING.md#development-setup) gives the limit), and it runs the `cargo` checks with `--locked`.
+`just check` runs the checks below, in order, stopping at the first failure, and is the main gate used by agents and CI. CI runs more than it does ([CONTRIBUTING.md](CONTRIBUTING.md#what-ci-runs)): `just coverage`, the npm license and advisory check, the acceptance test check and CodeQL. It runs `pnpm install --frozen-lockfile` in each frontend package first, so it also works on a fresh clone whose path is short enough ([CONTRIBUTING.md](CONTRIBUTING.md#development-setup) gives the limit), and it runs the `cargo` checks with `--locked`.
 
 ```bash
 # Rust
@@ -96,7 +96,7 @@ pnpm tauri dev
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 # Tests of the Node.js scripts
-node --test scripts/check-acceptance-tests.spec.mjs scripts/check-unit-test-layout.spec.mjs
+node --test scripts/check-acceptance-tests.spec.mjs scripts/check-npm-licenses.spec.mjs scripts/check-unit-test-layout.spec.mjs
 
 # Run the service without installing it (development)
 cargo run -p bastion-service -- --console
@@ -104,8 +104,10 @@ cargo run -p bastion-service -- --console
 
 `just coverage` is separate from `just check`, because it needs [`cargo-llvm-cov`](https://github.com/taiki-e/cargo-llvm-cov) (`cargo install cargo-llvm-cov --locked`). It fails if line coverage of `bastion-core` or `bastion-ipc`, each on its own, is below 90 %, and reports the desktop app's and the extension's coverage with no minimum (`pnpm test:coverage` in each package).
 
-`just check-acceptance-tests <base>` is separate too, because it needs a base: it fails if a commit in `<base>..HEAD` changes acceptance tests (`**/tests/acceptance*`) without a subject starting with `test(`, or changes other files along with them, and it can't pass on a shallow clone. It catches accidental changes; a commit prefix proves nothing about who wrote a commit ([CONTRIBUTING.md](CONTRIBUTING.md#acceptance-tests-change-only-in-test-commits)).
+`just check-acceptance-tests <base>` is separate too, because it needs a base: it fails if a commit in `<base>..HEAD` changes acceptance tests (`**/tests/acceptance*`) without a subject starting with `test(`, or changes other files along with them, and it can't pass on a shallow clone. CI runs it on pull requests, from the base's copy of the script. It catches accidental changes; a commit prefix proves nothing about who wrote a commit ([CONTRIBUTING.md](CONTRIBUTING.md#acceptance-tests-change-only-in-test-commits)).
+
+`just npm-dependencies` is separate too, because a new advisory can fail it with no change in the repository: it fails if an npm dependency of the desktop app or the extension has a license that `scripts/npm-license-policy.mjs` rejects, or a known advisory.
 
 CodeQL runs only on GitHub ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)). Pin any action to a full commit hash with its version in a comment.
 
-`lefthook` runs format and lint checks on commit; CI runs everything on `windows-latest`.
+`lefthook` runs format and lint checks on commit. CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on `windows-latest`, on pull requests to `main` and pushes to it. It uses a pull request's own copy of the workflows, the `justfile` and the scripts, so changes to those are for human review ([CONTRIBUTING.md](CONTRIBUTING.md#what-ci-proves)).
