@@ -16,7 +16,7 @@
 // - 0: every commit in `<base>..HEAD` follows the rule.
 // - 1: at least one commit breaks it; each one is listed.
 // - 2: the check could not run. This is never a pass: an unknown base, a shallow
-//   clone (CI must check out with `fetch-depth: 0`), no commits to check, a base
+//   clone (CI fetches the whole history into a bare repository), no commits to check, a base
 //   with no history in common with HEAD, or any Git error.
 //
 // Which files count: a directory named `tests` directly above a file or
@@ -266,7 +266,7 @@ function check() {
   const shallow = runGit(["rev-parse", "--is-shallow-repository"]).stdout.trim();
   if (shallow !== "false") {
     throw new Error(
-      "this is a shallow clone, so commits may be missing; fetch the whole history (`fetch-depth: 0` in CI, `git fetch --unshallow` locally)",
+      "this is a shallow clone, so commits may be missing; fetch the whole history (`git fetch --unshallow`)",
     );
   }
   ignoreRepositoryAttributes();

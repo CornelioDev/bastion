@@ -4,6 +4,9 @@
 // how to judge them. It is deny.toml's policy for npm: permissive licenses only, and
 // anything not listed here fails. check-npm-licenses.mjs applies it, development
 // dependencies included. Loosening it needs a reason written next to the change.
+//
+// The result relies on the license each package declares in its package.json, which
+// is what pnpm reports. Nothing reads the license texts, so a wrong declaration passes.
 
 /**
  * Licenses any package may use: deny.toml's `allow` list, for the same reasons, plus
