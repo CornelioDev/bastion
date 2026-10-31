@@ -51,7 +51,7 @@ MVP phases: **F0 → F6**. Later: **F7 → F9**.
 ### CI and release
 
 - [x] **T-0.12** Export the MVP mockup screens to `docs/assets/mockups/` and link them from `docs/ui-stack.md`.
-- [ ] **T-0.13** CI (`.github/workflows/ci.yml`, `windows-latest`) running `just check`, plus the jobs from T-0.17 and T-0.18. Required for merging into `main`: add it as a required status check to the `main` ruleset.
+- [~] **T-0.13** CI (`.github/workflows/ci.yml`, `windows-latest`) running `just check`, plus the jobs from T-0.17 and T-0.18. Required for merging into `main`: add it as a required status check to the `main` ruleset.
   - Depends on: T-0.16, T-0.17, T-0.18
 - [ ] **T-0.14** Release automation with `release-please` (workspace versioning, changelog from Conventional Commits, GitHub Releases).
   - Depends on: T-0.13
