@@ -94,10 +94,17 @@ pnpm tauri dev
 # Extension (from extension)
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
+# Tests of the Node.js scripts
+node --test scripts/check-acceptance-tests.spec.mjs
+
 # Run the service without installing it (development)
 cargo run -p bastion-service -- --console
 ```
 
 `just coverage` is separate from `just check`, because it needs [`cargo-llvm-cov`](https://github.com/taiki-e/cargo-llvm-cov) (`cargo install cargo-llvm-cov --locked`). It fails if line coverage of `bastion-core` or `bastion-ipc`, each on its own, is below 90 %, and reports the desktop app's and the extension's coverage with no minimum (`pnpm test:coverage` in each package).
+
+`just check-acceptance-tests <base>` is separate too, because it needs a base: it fails if a commit in `<base>..HEAD` changes acceptance tests (`**/tests/acceptance*`) without a subject starting with `test(`, or changes other files along with them, and it can't pass on a shallow clone. It catches accidental changes; a commit prefix proves nothing about who wrote a commit ([CONTRIBUTING.md](CONTRIBUTING.md#acceptance-tests-change-only-in-test-commits)).
+
+CodeQL runs only on GitHub ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)). Pin any action to a full commit hash with its version in a comment.
 
 `lefthook` runs format and lint checks on commit; CI runs everything on `windows-latest`.

@@ -1,0 +1,68 @@
+# CodeQL static security analysis of the Rust and TypeScript/JavaScript code
+# (T-0.18). This is GitHub's "advanced setup", kept apart from ci.yml because
+# uploading results needs `security-events: write`. The repository's "default
+# setup" for code scanning must stay off: GitHub rejects results from this
+# workflow while it is on.
+#
+# Every action is pinned to a full commit hash, with its version in a comment;
+# Dependabot updates both (.github/dependabot.yml).
+#
+# Nothing is excluded: there is no `paths-ignore`, here or in a CodeQL config, so
+# all the repository's code is scanned, tests, scripts and generated UI components
+# included. Only what CodeQL leaves out on its own is missing, such as
+# node_modules, which this workflow doesn't install. Also, no `paths` filter on
+# the triggers: a check that doesn't run would block a pull request once this is
+# required.
+
+name: CodeQL
+
+on:
+  # Never `pull_request_target`: that one runs with the repository's secrets and
+  # write access on code from a fork.
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  # New queries find new problems in code that has not changed. Mondays, 05:17 UTC.
+  schedule:
+    - cron: "17 5 * * 1"
+
+permissions: {}
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    # Windows, like the rest of CI, and for a reason that matters: CodeQL's Rust
+    # extractor skips code that `#[cfg]` turns off for the machine it runs on, so
+    # on Linux it would not see `#[cfg(windows)]` code, which is what most of
+    # bastion-service will be.
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      # One language failing must not cancel the results of the other.
+      fail-fast: false
+      matrix:
+        language: [rust, javascript-typescript]
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # `none` is the only build mode these two languages have. For Rust, CodeQL
+      # still runs build.rs files and proc macros through rust-analyzer. It needs
+      # rustup and cargo, which windows-latest includes.
+      - name: Set up CodeQL
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-extended
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          category: "/language:${{ matrix.language }}"

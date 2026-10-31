@@ -152,11 +152,34 @@ git commit -s -m "feat(core): …"
 1. Fork and create a branch from `main` (`feat/blocklist-exceptions`, `fix/pipe-reconnect`).
 2. Keep PRs focused: one logical change.
 3. Add or update tests. Logic in `bastion-core` and `bastion-ipc` is developed test-first.
-4. Run `just check` locally; it runs every check CI runs. Don't modify acceptance tests (`**/tests/acceptance*`) in a feature PR; propose changes to them in a separate `test:` PR.
+4. Run `just check` locally; it runs every check CI runs. Don't modify acceptance tests (`**/tests/acceptance*`) in a feature PR; propose changes to them in a separate PR, in commits whose subject starts with `test(`, which is what [`just check-acceptance-tests`](#acceptance-tests-change-only-in-test-commits) checks.
 5. Update docs, the roadmap, and `CHANGELOG.md` (`[Unreleased]`) when relevant.
 6. Fill in the PR template. A maintainer squash-merges the PR once `just check` passes.
 
 PRs are squash-merged; the PR title becomes the commit title, so it must follow Conventional Commits.
+
+### Acceptance tests change only in `test(` commits
+
+Acceptance tests are the contract for a task ([docs/workflow.md](docs/workflow.md#acceptance-tests-are-protected)), so every commit of a pull request has to follow that rule. For now the check is run by hand; T-0.13 adds it to CI for pull requests. To run it, with Git 2.43 or newer, on a clone with its whole history:
+
+```bash
+just check-acceptance-tests origin/main
+```
+
+It exits with 0 when every commit in `origin/main..HEAD` follows the rule, 1 when one doesn't (each is listed), and 2 when it can't tell: an unknown base, a shallow clone, no commits since the base, a base with no history in common, or a Git error. It isn't part of `just check`, which has no base to compare to.
+
+The rule, for files under `**/tests/acceptance*` in any letter case, added, modified, deleted, or renamed into or out of those paths:
+
+- The commit's subject must start with exactly `test(`. `test: x`, `Test(x)`, `fix: test(x)`, `fixup! test(x)` and `Revert "test(x)"` don't pass; squash fixups first, and give a revert a `test(` subject.
+- That commit must change nothing else, so that product code can't arrive under a `test(` subject. Put a dependency or configuration change that a test needs in its own commit.
+- A merge only counts for what was done by hand. Merging `main` into a branch passes, even if it brings in changes to acceptance tests. A merge that edits an acceptance test, resolves a conflict in one whichever side it keeps, or throws away one side's change (`git merge -s ours`) is treated as a commit changing that test: rebase instead, or give the merge a `test(` subject. The merge is judged without the repository's `.gitattributes`, so a merge that relies on a merge attribute for an acceptance test counts too. A merge of more than two branches counts for every difference from any parent.
+
+This catches accidental changes, mostly by agents. It doesn't prove who wrote a commit: anyone can type `test(`, and a pull request can change the script itself. Human review remains the control.
+
+### Security checks
+
+- **CodeQL** ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)) analyzes the Rust and TypeScript/JavaScript code on every pull request, on every push to `main` and weekly. Results appear under the repository's Security tab and on the pull request. It only runs on GitHub, so there is nothing to run locally. The repository's "default setup" for code scanning must stay off, because it conflicts with this workflow.
+- **Secret scanning with push protection** is on for the repository; see [SECURITY.md](SECURITY.md#secret-scanning).
 
 ## Labels
 

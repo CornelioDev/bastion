@@ -17,6 +17,12 @@ Bastion installs a Windows service that runs as `LocalSystem`. We take vulnerabi
 
 Until `1.0`, only the latest release receives security fixes.
 
+## Secret scanning
+
+GitHub secret scanning and push protection are enabled in this repository's settings, not by a file in it (checked on 2026-10-30). A push that contains a secret is rejected for the patterns push protection supports, on pushes to this repository, and a secret that secret scanning recognizes in the history raises an alert for the maintainers. Neither covers every kind of secret, so they don't replace reading your diff.
+
+If a push is blocked, remove the secret from your commits instead of bypassing the block. A secret that has reached a public branch is compromised even after you remove it: revoke it first.
+
 ## Reporting a vulnerability
 
 Please **do not open a public issue.** Report privately through GitHub's [private vulnerability reporting](https://github.com/CornelioDev/bastion/security/advisories/new).

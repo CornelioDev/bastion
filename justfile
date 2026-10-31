@@ -27,7 +27,7 @@ set windows-shell := ["cmd.exe", "/d", "/c"]
 export NoDefaultCurrentDirectoryInExePath := "1"
 
 # Run every check; stops at the first failure
-check: fmt clippy test deny desktop extension
+check: fmt clippy test deny desktop extension test-scripts
 
 # Check the formatting of the Rust code
 fmt:
@@ -59,6 +59,23 @@ extension:
     pnpm --dir extension typecheck
     pnpm --dir extension test
     pnpm --dir extension build
+
+# Test the scripts in scripts/ that run on Node.js
+test-scripts:
+    node --test scripts/check-acceptance-tests.spec.mjs
+
+# Not part of `check`, which has no base to compare a branch to. It is run by hand
+# until T-0.13 adds it to CI for pull requests (with fetch-depth: 0, as it fails on
+# a shallow clone). On `main` it would fail anyway, because squash-merged tasks
+# change acceptance tests.
+#
+# `$` exports the parameter as an environment variable, and the script reads it
+# from there. The base comes from a pull request, so it stays out of the command
+# line: cmd.exe would run the `&` in a base written as `{{ACCEPTANCE_BASE}}`.
+
+# Fail if commits since the base change acceptance tests outside `test(` commits
+check-acceptance-tests $ACCEPTANCE_BASE:
+    node scripts/check-acceptance-tests.mjs
 
 # Not part of `check`, which stays the fast gate: this needs extra tools
 # (cargo-llvm-cov, llvm-tools), compiles the crates a second time and slows the
