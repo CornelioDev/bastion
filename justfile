@@ -75,7 +75,7 @@ test-scripts:
 # Not part of `check`: a new advisory can fail these with no change in the repository,
 # and CI runs them as a job of its own, which shows both results.
 
-# Check npm dependencies: licenses, then advisories
+# Check npm dependencies: licenses, then advisories; stops if the licenses fail
 npm-dependencies: npm-licenses npm-audit
 
 # `pnpm licenses` reads what is installed, so this installs first.
@@ -86,9 +86,10 @@ npm-licenses:
     pnpm --dir extension install --frozen-lockfile
     node scripts/check-npm-licenses.mjs
 
-# Development dependencies count, as they do for cargo-deny, and so do moderate
-# advisories: the script has no `--prod` and no `--audit-level` on purpose. It audits
-# both packages even when the first fails, which two recipe lines wouldn't.
+# Development dependencies count, as they do for cargo-deny, and so does every severity
+# from low up: the script has no `--prod`, and passes `--audit-level low` so that a
+# setting in pnpm-workspace.yaml can't raise it. It audits both packages even when the
+# first fails, which two recipe lines wouldn't.
 
 # Fail if an npm dependency has a known advisory
 npm-audit:
