@@ -1,7 +1,8 @@
 # cargo-deny configuration: checks every Rust dependency's license, known
 # security advisories, duplicate versions and where it was downloaded from.
-# Run it with `cargo deny check`; `just check` runs it too, and CI (T-0.13) is
-# meant to run it on every change once it exists.
+# Run it with `cargo deny check`; `just check` runs it too, and so CI does on
+# every change. npm dependencies have their own policy, in
+# scripts/npm-license-policy.mjs.
 # Reference: https://embarkstudios.github.io/cargo-deny/
 #
 # The service runs as SYSTEM, so a compromised or vulnerable crate inside it

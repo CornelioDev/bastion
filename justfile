@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 #
 # Project commands, run with just (https://just.systems). `just check` is the
-# single gate used by contributors, agents and CI; `just --list` shows every
-# recipe.
+# main gate used by contributors, agents and CI, which also runs other recipes
+# (.github/workflows/ci.yml); `just --list` shows every recipe.
 #
 # How a failure stops the run: just gives each line of a recipe its own shell,
 # and stops at the first line that exits with anything other than 0, skipping
@@ -26,7 +26,7 @@ set windows-shell := ["cmd.exe", "/d", "/c"]
 # tool and could make every check pass. This variable makes it use PATH only.
 export NoDefaultCurrentDirectoryInExePath := "1"
 
-# Run every check; stops at the first failure
+# Run the main checks; stops at the first failure
 check: fmt clippy unit-test-layout test deny desktop extension test-scripts
 
 # Check the formatting of the Rust code
@@ -70,12 +70,34 @@ extension:
 
 # Test the scripts in scripts/ that run on Node.js
 test-scripts:
-    node --test scripts/check-acceptance-tests.spec.mjs scripts/check-unit-test-layout.spec.mjs
+    node --test scripts/check-acceptance-tests.spec.mjs scripts/check-npm-licenses.spec.mjs scripts/check-unit-test-layout.spec.mjs
 
-# Not part of `check`, which has no base to compare a branch to. It is run by hand
-# until T-0.13 adds it to CI for pull requests (with fetch-depth: 0, as it fails on
-# a shallow clone). On `main` it would fail anyway, because squash-merged tasks
-# change acceptance tests.
+# Not part of `check`: a new advisory can fail these with no change in the repository,
+# and CI runs them as a job of its own, which shows both results.
+
+# Check npm dependencies: licenses, then advisories
+npm-dependencies: npm-licenses npm-audit
+
+# `pnpm licenses` reads what is installed, so this installs first.
+
+# Fail if an npm dependency has a license that scripts/npm-license-policy.mjs rejects
+npm-licenses:
+    pnpm --dir apps/desktop install --frozen-lockfile
+    pnpm --dir extension install --frozen-lockfile
+    node scripts/check-npm-licenses.mjs
+
+# Development dependencies count, as they do for cargo-deny, and so do moderate
+# advisories: this has no `--prod` and no `--audit-level` on purpose.
+
+# Fail if an npm dependency has a known advisory
+npm-audit:
+    pnpm --dir apps/desktop audit
+    pnpm --dir extension audit
+
+# Not part of `check`, which has no base to compare a branch to. CI runs the script
+# directly, from the base's copy, for pull requests (.github/workflows/ci.yml). It
+# fails on a shallow clone. On `main` it would fail anyway, because squash-merged
+# tasks change acceptance tests.
 #
 # `$` exports the parameter as an environment variable, and the script reads it
 # from there. The base comes from a pull request, so it stays out of the command
