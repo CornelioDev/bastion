@@ -6,8 +6,12 @@
 #
 # Why a GitHub App and not `GITHUB_TOKEN`: pull requests opened with `GITHUB_TOKEN`
 # trigger no workflows, so a release pull request would wait forever for the checks
-# that the `main` ruleset requires. The App's token doesn't bypass the ruleset: a
-# person still merges the pull request, after the same checks as any other.
+# that the `main` ruleset requires. The App's token doesn't bypass the ruleset, so
+# anything it merged would still need those checks. That a person merges the pull
+# request is a rule we follow, not something enforced: with Contents write, the token
+# can merge a pull request into `main`, as the ruleset requires no approval, and can
+# create or move tags. Only the pinned action below receives it, so an update to that
+# action needs its `dist/` diff read (CONTRIBUTING.md, "Releases").
 #
 # The private key is only reachable from this job:
 # - It lives in the `release-please` environment, whose deployment rule allows only
