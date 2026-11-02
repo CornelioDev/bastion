@@ -1,0 +1,202 @@
+# Every deterministic check on every pull request and on every push to `main`
+# (T-0.13). CodeQL has its own workflow (codeql.yml).
+#
+# The job names below become required status checks in the `main` ruleset, so
+# renaming one means changing the ruleset in the same step, or merges wait
+# forever for a check that no longer exists.
+#
+# What this can prove: on `pull_request`, GitHub runs the workflow, the justfile
+# and the scripts as the pull request has them. A pull request can edit any of
+# these to make a check pass, or remove it. CI catches mistakes in code; a change
+# to CI itself is for human review (CONTRIBUTING.md, "What CI proves").
+#
+# Every action is pinned to a full commit hash, with its version in a comment;
+# Dependabot updates both (.github/dependabot.yml). It doesn't update the `tool:`
+# versions of install-action, which change by hand, along with the versions in
+# CONTRIBUTING.md.
+
+name: CI
+
+on:
+  # Never `pull_request_target`: that one runs with the repository's secrets and
+  # write access on code from a fork.
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  check:
+    name: just check
+    runs-on: windows-latest
+    # A build with no cache compiles Tauri several times: clippy, the tests and the
+    # builds of scripts/check-unit-test-layout.mjs. The timeout also bounds the
+    # layout scan, which extreme input can make slow.
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # With no version given, rustup reads rust-toolchain.toml, components included.
+      - name: Install the Rust toolchain
+        run: rustup toolchain install
+
+      # install-action checks each download against a checksum recorded in the
+      # action's commit. `fallback: none` makes it fail on a version it doesn't
+      # know, instead of getting that version without a recorded checksum.
+      - name: Install just and cargo-deny
+        uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: just@1.59.0,cargo-deny@0.20.2
+          fallback: none
+
+      # The repository root has no package.json, so setup-node finds nothing to
+      # cache. Saying so keeps caches, which pull requests could fill, out of CI.
+      - name: Install Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      # The version comes from `packageManager`. pnpm itself switches to the same
+      # field in the other package, if the two ever differ.
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: apps/desktop/package.json
+
+      - name: Run every check
+        run: just check
+
+  coverage:
+    name: just coverage
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # With no version given, rustup reads rust-toolchain.toml, which includes
+      # the llvm-tools component that cargo-llvm-cov needs.
+      - name: Install the Rust toolchain
+        run: rustup toolchain install
+
+      - name: Install just and cargo-llvm-cov
+        uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: just@1.59.0,cargo-llvm-cov@0.9.1
+          fallback: none
+
+      - name: Install Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: apps/desktop/package.json
+
+      - name: Measure test coverage
+        run: just coverage
+
+  # Its own job, and not part of `just check`: a new advisory can fail it with no
+  # change in the repository, and the result depends on the npm registry. It only
+  # audits: the npm license check (`just npm-licenses`) is off as a gate during the
+  # MVP, by the maintainer's decision (2026-11-02), and must be analyzed before the
+  # first public release. Rust licenses are still checked, by cargo-deny in `just check`.
+  npm-dependencies:
+    name: npm dependencies
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install just
+        uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: just@1.59.0
+          fallback: none
+
+      - name: Install Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: apps/desktop/package.json
+
+      - name: Check advisories
+        run: just npm-dependencies
+
+  # Runs the base's copy of the script on the pull request's commits, with no file
+  # from the pull request on disk:
+  # - A pull request can edit the script and the justfile, so neither is used from it.
+  # - The commits go into a bare repository, which has no working tree. No `git.exe`,
+  #   `git.cmd` or `.gitattributes` from the pull request can exist where Git and
+  #   Node.js run. The same goes for a path too long for Windows to check out.
+  # - This fetches the whole history, as `fetch-depth: 0` would: the script fails on
+  #   a shallow repository.
+  # - HEAD is the pull request's real head, not `github.sha`. That one is the merge
+  #   commit GitHub makes to test the pull request, and the script would judge it as
+  #   a merge somebody made by hand.
+  #
+  # The script fails if Git is older than 2.43, which it needs to compare merges.
+  # This repository is public, so the fetch needs no token; `contents: read` is for
+  # the checkout.
+  acceptance-tests:
+    name: Acceptance tests
+    if: github.event_name == 'pull_request'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the base, for its copy of the script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Fetch the commits of the pull request, without its files
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git init --quiet --bare commits.git
+          git -C commits.git fetch --quiet --no-tags "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "+$BASE_SHA:refs/heads/base" "+$HEAD_SHA:refs/heads/head"
+          git -C commits.git symbolic-ref HEAD refs/heads/head
+
+      - name: Check that acceptance tests only change in `test(` commits
+        shell: bash
+        working-directory: commits.git
+        env:
+          ACCEPTANCE_BASE: ${{ github.event.pull_request.base.sha }}
+        run: node ../base/scripts/check-acceptance-tests.mjs

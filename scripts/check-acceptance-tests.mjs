@@ -16,7 +16,7 @@
 // - 0: every commit in `<base>..HEAD` follows the rule.
 // - 1: at least one commit breaks it; each one is listed.
 // - 2: the check could not run. This is never a pass: an unknown base, a shallow
-//   clone (CI must check out with `fetch-depth: 0`), no commits to check, a base
+//   clone (CI fetches the whole history into a bare repository), no commits to check, a base
 //   with no history in common with HEAD, or any Git error.
 //
 // Which files count: a directory named `tests` directly above a file or
@@ -56,10 +56,11 @@
 //   a line.
 //
 // Git's own environment is not inherited (`GIT_DIR`, `GIT_CONFIG_*` and the rest),
-// so that it cannot point the check at another repository. What is out of this
-// script's reach is the configuration in `.git/config` and the Git and Node.js it
-// runs: whoever can change those can already run code as the user. They are not
-// part of a pull request.
+// so that it cannot point the check at another repository. That doesn't isolate Git
+// from its configuration: it still reads the system file, the global one that `HOME`
+// selects, and `.git/config`. Those, and the Git and Node.js this runs, are out of this
+// script's reach: whoever can change them can already run code as the user. They are
+// not part of a pull request.
 
 import { spawnSync } from "node:child_process";
 
@@ -88,7 +89,8 @@ const EXIT_CANNOT_CHECK = 2;
 const MINIMUM_GIT = [2, 43];
 
 /**
- * The environment Git runs in: nothing that selects a repository or a configuration.
+ * The environment Git runs in: no `GIT_*` variable, so none of those can select a
+ * repository or add configuration. `HOME` stays, and selects the global configuration.
  */
 const gitEnv = Object.fromEntries(
   Object.entries(process.env).filter(([name]) => !name.toUpperCase().startsWith("GIT_")),
@@ -264,7 +266,7 @@ function check() {
   const shallow = runGit(["rev-parse", "--is-shallow-repository"]).stdout.trim();
   if (shallow !== "false") {
     throw new Error(
-      "this is a shallow clone, so commits may be missing; fetch the whole history (`fetch-depth: 0` in CI, `git fetch --unshallow` locally)",
+      "this is a shallow clone, so commits may be missing; fetch the whole history (`git fetch --unshallow`)",
     );
   }
   ignoreRepositoryAttributes();

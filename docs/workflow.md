@@ -28,7 +28,7 @@ The maintainer starts a task with: **"Run task T-x.y"** (or several, see *Runnin
 5. **Independent review.** Invoke `qa-engineer` in `validate` mode and `security-reviewer` in parallel. If either returns FAIL, send the findings to `developer` (step 3).
 6. **Retry limit.** After **3** round-trips from step 4 or 5 back to step 3, stop and escalate to the maintainer with the reports so far.
 7. **Report.** Compile the maintainer report (template below) and **stop**. Do not merge.
-8. **On approval** ("aprobado" / "approved"): tick the task `[x]`, update **Current status**, add a `CHANGELOG.md` entry if user-visible, add ADRs the developer flagged, merge into `main` with a squash commit (`feat(core): add pomodoro state machine (T-1.3)`), and delete the branch.
+8. **On approval** ("aprobado" / "approved"): tick the task `[x]`, update **Current status**, add a `CHANGELOG.md` entry if user-visible, add ADRs the developer flagged, and push the branch. Open a pull request to `main` titled with the squash commit's subject (`feat(core): add pomodoro state machine (T-1.3)`; GitHub appends ` (#N)`), wait for the required checks, squash-merge it on GitHub, and delete the branch ([CONTRIBUTING.md](../CONTRIBUTING.md#pull-requests) has the command, and how the subject and the DCO sign-off carry over). `main` takes no direct push: its ruleset's `pull_request` rule requires a pull request, with an empty bypass list.
    **On rejection:** take the maintainer's feedback to `developer` (step 3) and continue.
 
 Reports to the maintainer are written in **Spanish**. Everything committed to the repository stays in English.
@@ -45,7 +45,7 @@ The maintainer can also start several consecutive tasks at once, usually one gro
 - Step 7 does not stop: the orchestrator records the task's report and moves on to the next task.
 - The orchestrator still stops early whenever a single task would: ambiguous criteria, a wrong test, the retry limit, or a decision only the maintainer can make. Actions outside the repository, such as changing GitHub settings, are confirmed with the maintainer before they are taken.
 - After the last task, the orchestrator sends **one report** with a section per task, each following the template below, and stops.
-- On approval, step 8 is done for each task in order, giving one squash commit per task on `main`. If the maintainer rejects a task, the tasks before it can still be merged; the rejected task goes back to step 3, and the tasks after it are rebased onto the fixed branch and checked again.
+- On approval, step 8 is done for each task in order, giving one pull request and one squash commit per task on `main`. CI only runs on pull requests to `main`, so a task's pull request opens when the one before it has merged: rebase the task's own commits onto `main` first (`git rebase --onto main <previous task's branch>`). If the maintainer rejects a task, the tasks before it can still be merged; the rejected task goes back to step 3, and the tasks after it are rebased onto the fixed branch and checked again.
 
 Tasks are still run one at a time; this changes when the maintainer approves, not how many loops run in parallel (see *Working in parallel*).
 
@@ -62,7 +62,7 @@ Acceptance tests are the contract between the maintainer and the developer, so o
 
 `bastion-core` and `bastion-ipc` keep unit tests in separate files because `just coverage` doesn't measure those, so its 90 % covers production code only; they are still `#[cfg(test)]` modules, so the test lint exemptions in [AGENTS.md](../AGENTS.md#writing-rust-tests) apply. `just check` enforces this layout, and reviewers still look for what a build and a text scan can't see ([CONTRIBUTING.md](../CONTRIBUTING.md#development-setup)).
 
-`just check-acceptance-tests <base>`, run by hand until T-0.13 adds it to CI for pull requests, fails if a commit changes these files without a subject starting with `test(`, or changes other files along with them ([CONTRIBUTING.md](../CONTRIBUTING.md#acceptance-tests-change-only-in-test-commits)). That catches accidents; it doesn't prove who wrote a commit.
+CI's `Acceptance tests` check on pull requests, which is `just check-acceptance-tests <base>` run from the base's copy of the script, fails if a commit changes these files without a subject starting with `test(`, or changes other files along with them ([CONTRIBUTING.md](../CONTRIBUTING.md#acceptance-tests-change-only-in-test-commits)). That catches accidents; it doesn't prove who wrote a commit.
 
 QA validation fails automatically if acceptance tests changed after the QA commit. Changing them requires the maintainer's explicit approval, recorded in the report.
 
@@ -114,6 +114,8 @@ Until **T-2.3** (the IPC protocol) is approved, run one task at a time. After it
 | Service | F2 (rest), F5 |
 | Desktop UI | F3 |
 | Extension | F4 |
+
+`main`'s ruleset requires a branch to be up to date before merging, so each merge makes the other open branches update and run CI again. Revisit that requirement when parallel loops start.
 
 Parallel loops must not change `bastion-ipc`; protocol changes go through a dedicated task on `main` that the other fronts then pull in. The maintainer still approves each task individually.
 

@@ -1,7 +1,8 @@
 # lefthook (https://lefthook.dev): Git hooks that run quick checks before a
 # commit is created. Install them once per clone with `lefthook install`
 # (CONTRIBUTING.md, "Development setup"). They only catch mistakes early: CI
-# runs every check again (`just check`), and `git commit --no-verify` skips
+# runs the format and lint checks again (`just check`), but nothing in CI
+# checks the Conventional Commits format, and `git commit --no-verify` skips
 # the hooks.
 #
 # lefthook runs each command with `sh` (on Windows, the one that comes with

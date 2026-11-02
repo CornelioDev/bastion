@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 #
 # Project commands, run with just (https://just.systems). `just check` is the
-# single gate used by contributors, agents and CI; `just --list` shows every
-# recipe.
+# main gate used by contributors, agents and CI, which also runs other recipes
+# (.github/workflows/ci.yml); `just --list` shows every recipe.
 #
 # How a failure stops the run: just gives each line of a recipe its own shell,
 # and stops at the first line that exits with anything other than 0, skipping
@@ -26,7 +26,7 @@ set windows-shell := ["cmd.exe", "/d", "/c"]
 # tool and could make every check pass. This variable makes it use PATH only.
 export NoDefaultCurrentDirectoryInExePath := "1"
 
-# Run every check; stops at the first failure
+# Run the main checks; stops at the first failure
 check: fmt clippy unit-test-layout test deny desktop extension test-scripts
 
 # Check the formatting of the Rust code
@@ -70,12 +70,38 @@ extension:
 
 # Test the scripts in scripts/ that run on Node.js
 test-scripts:
-    node --test scripts/check-acceptance-tests.spec.mjs scripts/check-unit-test-layout.spec.mjs
+    node --test scripts/check-acceptance-tests.spec.mjs scripts/check-npm-audit.spec.mjs scripts/check-npm-licenses.spec.mjs scripts/check-unit-test-layout.spec.mjs
 
-# Not part of `check`, which has no base to compare a branch to. It is run by hand
-# until T-0.13 adds it to CI for pull requests (with fetch-depth: 0, as it fails on
-# a shallow clone). On `main` it would fail anyway, because squash-merged tasks
-# change acceptance tests.
+# Not part of `check`: a new advisory can fail it with no change in the repository,
+# and CI runs it as a job of its own. Licenses aren't part of it: see `npm-licenses`.
+
+# What CI's `npm dependencies` job runs: the advisories of the npm dependencies
+npm-dependencies: npm-audit
+
+# Not a gate: nothing runs this but a person. The npm license check is off as a gate
+# during the MVP, by the maintainer's decision (2026-11-02), and must be analyzed before
+# the first public release. Today it fails on elkjs (EPL-2.0). `pnpm licenses` reads
+# what is installed, so this installs first.
+
+# Report npm licenses that scripts/npm-license-policy.mjs rejects; not a gate, fails on elkjs
+npm-licenses:
+    pnpm --dir apps/desktop install --frozen-lockfile
+    pnpm --dir extension install --frozen-lockfile
+    node scripts/check-npm-licenses.mjs
+
+# Development dependencies count, as they do for cargo-deny, and so does every severity
+# from low up: the script has no `--prod`, and passes `--audit-level low` so that a
+# setting in pnpm-workspace.yaml can't raise it. It audits both packages even when the
+# first fails, which two recipe lines wouldn't.
+
+# Fail if an npm dependency has a known advisory
+npm-audit:
+    node scripts/check-npm-audit.mjs
+
+# Not part of `check`, which has no base to compare a branch to. CI runs the script
+# directly, from the base's copy, for pull requests (.github/workflows/ci.yml). It
+# fails on a shallow clone. On `main` it would fail anyway, because squash-merged
+# tasks change acceptance tests.
 #
 # `$` exports the parameter as an environment variable, and the script reads it
 # from there. The base comes from a pull request, so it stays out of the command

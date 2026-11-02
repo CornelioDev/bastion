@@ -19,10 +19,12 @@ For larger changes (new features, architectural changes), open an issue first. I
 Requirements (Windows 10 or 11):
 
 - [Rust](https://rustup.rs) — the toolchain is pinned in `rust-toolchain.toml`.
-- [Node.js](https://nodejs.org) LTS and [pnpm](https://pnpm.io).
+- [Node.js](https://nodejs.org) LTS and [pnpm](https://pnpm.io), the version in `packageManager` in each package's `package.json`.
 - [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) (WebView2, MSVC build tools).
-- [`just`](https://github.com/casey/just), [`cargo-deny`](https://github.com/EmbarkStudios/cargo-deny) and [`lefthook`](https://github.com/evilmartians/lefthook).
-- [`cargo-llvm-cov`](https://github.com/taiki-e/cargo-llvm-cov), only for `just coverage`: `cargo install cargo-llvm-cov --locked`. The `llvm-tools` component it needs comes with the pinned toolchain.
+- [`just`](https://github.com/casey/just) 1.59.0, [`cargo-deny`](https://github.com/EmbarkStudios/cargo-deny) 0.20.2 and [`lefthook`](https://github.com/evilmartians/lefthook) 2.2.2.
+- [`cargo-llvm-cov`](https://github.com/taiki-e/cargo-llvm-cov) 0.9.1, only for `just coverage`: `cargo install cargo-llvm-cov --locked --version 0.9.1`. The `llvm-tools` component it needs comes with the pinned toolchain.
+
+CI installs these same versions of `just`, `cargo-deny` and `cargo-llvm-cov` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)); change them there and here together. CI doesn't use `lefthook`, so this list is what pins its version.
 
 ```bash
 git clone https://github.com/CornelioDev/bastion.git
@@ -38,7 +40,7 @@ cargo run -p bastion-service -- --console
 pnpm --dir apps/desktop tauri dev
 ```
 
-To run every check, from any terminal (see [`justfile`](justfile); `just --list` shows the recipes for running a part of them):
+To run the main checks, from any terminal (see [`justfile`](justfile); `just --list` shows the recipes for running a part of them; [what CI runs](#what-ci-runs) lists the rest):
 
 ```bash
 just check
@@ -85,7 +87,7 @@ Review is still needed for what this can't see:
 - Code the checked builds don't compile, whatever its name: under `#[cfg(not(feature = "..."))]`, `#[cfg(unix)]`, `target_feature` or `panic`.
 - A `cfg` set from outside the crate, through the environment or `.cargo/config.toml` (`RUSTFLAGS`, `rustc-wrapper`).
 - Product code moved to another crate, which `-p` doesn't measure.
-- A pull request that changes the script itself.
+- A pull request that changes the script itself ([what CI proves](#what-ci-proves)).
 
 The report for the desktop app and the extension has no minimum; open `apps/desktop/coverage/index.html` or `extension/coverage/index.html` for details.
 
@@ -176,15 +178,59 @@ git commit -s -m "feat(core): …"
 1. Fork and create a branch from `main` (`feat/blocklist-exceptions`, `fix/pipe-reconnect`).
 2. Keep PRs focused: one logical change.
 3. Add or update tests. Logic in `bastion-core` and `bastion-ipc` is developed test-first.
-4. Run `just check` locally; it runs every check CI runs. Don't modify acceptance tests (`**/tests/acceptance*`) in a feature PR; propose changes to them in a separate PR, in commits whose subject starts with `test(`, which is what [`just check-acceptance-tests`](#acceptance-tests-change-only-in-test-commits) checks.
+4. Run `just check` locally; CI runs it and [more](#what-ci-runs). Don't modify acceptance tests (`**/tests/acceptance*`) in a feature PR; propose changes to them in a separate PR, in commits whose subject starts with `test(`, which is what [`just check-acceptance-tests`](#acceptance-tests-change-only-in-test-commits) checks.
 5. Update docs, the roadmap, and `CHANGELOG.md` (`[Unreleased]`) when relevant.
-6. Fill in the PR template. A maintainer squash-merges the PR once `just check` passes.
+6. Fill in the PR template. A maintainer squash-merges the PR once the required checks pass.
 
-PRs are squash-merged; the PR title becomes the commit title, so it must follow Conventional Commits.
+`main` only changes through pull requests: its ruleset has a `pull_request` rule that requires one, with squash merges only and no approvals, as a single maintainer can't approve their own, plus the required status checks. The ruleset's bypass list is empty, so this applies to the maintainer too. The squash keeps the two things a commit on `main` needs:
+
+- **Conventional Commits subject.** The PR title becomes the commit's subject, followed by the ` (#N)` that GitHub appends, so the title must follow Conventional Commits and name the task when there is one: `feat(core): add pomodoro state machine (T-1.3)` becomes `feat(core): add pomodoro state machine (T-1.3) (#12)`. No check reads the title, so whoever merges has to look at it.
+- **DCO sign-off.** The DCO app checks the PR's commits. Their `Signed-off-by` lines reach `main` only because the repository's `squash_merge_commit_message` setting is `COMMIT_MESSAGES`, which copies the commits' messages into the squash commit. Changing that setting silently loses the sign-off, and so does rewriting the message when merging without keeping such a line.
+
+Before merging, ask GitHub what the squash commit will say, which changes nothing. The headline must be the Conventional Commits subject and the body must have the `Signed-off-by` lines:
+
+```bash
+gh api graphql -F number=<number> -f query='query($number: Int!) { repository(owner: "CornelioDev", name: "bastion") { pullRequest(number: $number) { viewerMergeHeadlineText(mergeType: SQUASH) viewerMergeBodyText(mergeType: SQUASH) } } }'
+```
+
+Then merge from the command line, with the address you sign off with, so that GitHub doesn't pick another address of your account as the author:
+
+```bash
+gh pr merge <number> --squash --delete-branch --author-email <email>
+```
+
+### What CI runs
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) and [`codeql.yml`](.github/workflows/codeql.yml) run on every pull request to `main` and every push to it, on `windows-latest`. `just check` doesn't run everything CI does:
+
+| Check | What it does | Locally |
+|---|---|---|
+| `just check` | Formatting, lints, unit test layout, tests, `cargo deny`, the frontend packages, and the tests of the scripts | `just check` |
+| `just coverage` | 90 % of the lines of `bastion-core` and `bastion-ipc`; a report for the frontend packages | `just coverage` |
+| `npm dependencies` | `pnpm audit` of every npm dependency, development ones included | `just npm-dependencies` |
+| `Acceptance tests` | [The rule below](#acceptance-tests-change-only-in-test-commits); pull requests only | `just check-acceptance-tests origin/main` |
+| `Analyze (rust)`, `Analyze (javascript-typescript)`, `Upload (…)` | [CodeQL](#security-checks) | Nothing to run |
+
+`npm dependencies` isn't part of `just check` because a new advisory can fail it with no change in the repository. `just npm-dependencies` runs `just npm-audit`, which exits with 0 when there are no advisories of severity low or above, 1 when there are (each is listed), and 2 when it can't tell, such as with the registry down, which is never a pass. It can't tell a registry that wrongly replies `{}` from one with no advisories, because that is the normal reply, and pnpm silently drops an advisory whose severity is missing or unknown.
+
+**npm licenses are not checked by CI.** The npm license check is off as a gate during the MVP, by the maintainer's decision (2026-11-02), and must be analyzed before the first public release. Nothing stops a dependency with any license from coming in meanwhile. `just npm-licenses` runs it by hand, with the policy in [`scripts/npm-license-policy.mjs`](scripts/npm-license-policy.mjs), and it fails today on `elkjs` (EPL-2.0). Its result relies on what each package declares in its `package.json`; nothing reads the license texts. Rust licenses are still enforced, by `cargo deny` in `just check`.
+
+The checks in the table, with the `DCO` app's, are required to merge, and a branch must be up to date with `main`. So a new advisory can block every merge until a pull request updates the package or ignores the advisory by ID. To ignore one, add its GHSA ID to `auditConfig.ignoreGhsas` in the `pnpm-workspace.yaml` of the project it affects, with a reason and a review date next to it, and to the list in [`scripts/check-npm-audit.spec.mjs`](scripts/check-npm-audit.spec.mjs). No tool enforces the review date, so it needs someone to look at it.
+
+### What CI proves
+
+On a pull request, GitHub runs the workflows, the `justfile` and the scripts as that pull request has them. A pull request that edits any of them can make a check pass, or remove it, so CI proves little about such a change, and **a human has to catch it in review**. Look closely at any change to `.github/`, `justfile`, `scripts/`, `deny.toml`, `rust-toolchain.toml`, `Cargo.toml`, `clippy.toml`, `.cargo/config.toml`, any `build.rs`, `pnpm-workspace.yaml`, `.pnpmfile.cjs`, `.npmrc`, the lockfiles (`Cargo.lock`, `pnpm-lock.yaml`) and the package configs.
+
+- A required check is satisfied by its name. A pull request can keep `name: just check` with `run: exit 0`, or add a workflow with a job of that name, and the check passes.
+- A job skipped with `if: false` counts as passed.
+- A pull request from a fork needs the maintainer's approval before its workflows run, so read its `.github/` diff before approving.
+- With one maintainer no review is required, so `CODEOWNERS` blocks nothing.
+- `Acceptance tests` runs the script from the base branch, with no file of the pull request on disk, so editing the script or the `justfile` doesn't change its result. Editing `ci.yml` still does.
+- `scripts/check-unit-test-layout.mjs` and `scripts/unit-test-layout-rules.mjs` stay as the pull request has them: they catch accidents and ordinary code, not someone working around them. Running the base's copy wouldn't change that, as it would still build and read the pull request's code, in a job that the `justfile` and `ci.yml` of the pull request define.
 
 ### Acceptance tests change only in `test(` commits
 
-Acceptance tests are the contract for a task ([docs/workflow.md](docs/workflow.md#acceptance-tests-are-protected)), so every commit of a pull request has to follow that rule. For now the check is run by hand; T-0.13 adds it to CI for pull requests. To run it, with Git 2.43 or newer, on a clone with its whole history:
+Acceptance tests are the contract for a task ([docs/workflow.md](docs/workflow.md#acceptance-tests-are-protected)), so every commit of a pull request has to follow that rule. CI checks this on pull requests. To run it yourself, with Git 2.43 or newer, on a clone with its whole history:
 
 ```bash
 just check-acceptance-tests origin/main
@@ -198,11 +244,11 @@ The rule, for files under `**/tests/acceptance*` in any letter case, added, modi
 - That commit must change nothing else, so that product code can't arrive under a `test(` subject. Put a dependency or configuration change that a test needs in its own commit.
 - A merge only counts for what was done by hand. Merging `main` into a branch passes, even if it brings in changes to acceptance tests. A merge that edits an acceptance test, resolves a conflict in one whichever side it keeps, or throws away one side's change (`git merge -s ours`) is treated as a commit changing that test: rebase instead, or give the merge a `test(` subject. The merge is judged without the repository's `.gitattributes`, so a merge that relies on a merge attribute for an acceptance test counts too. A merge of more than two branches counts for every difference from any parent.
 
-This catches accidental changes, mostly by agents. It doesn't prove who wrote a commit: anyone can type `test(`, and a pull request can change the script itself. Human review remains the control.
+This catches accidental changes, mostly by agents. It doesn't prove who wrote a commit: anyone can type `test(`, and a pull request can [change the workflow that runs it](#what-ci-proves). Human review remains the control.
 
 ### Security checks
 
-- **CodeQL** ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)) analyzes the Rust and TypeScript/JavaScript code on every pull request, on every push to `main` and weekly. Results appear under the repository's Security tab and on the pull request. It only runs on GitHub, so there is nothing to run locally. The repository's "default setup" for code scanning must stay off, because it conflicts with this workflow.
+- **CodeQL** ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)) analyzes the Rust and TypeScript/JavaScript code on every pull request, on every push to `main` and weekly. Results appear under the repository's Security tab and on the pull request. A pull request from a fork or from Dependabot may have a token that can't upload them; its check still passes, and its results stay in the run's `sarif-*` artifacts until the code is analyzed again on `main`. The job that runs CodeQL, and with it the build scripts and proc macros of a pull request, has no permission to write results; a second job with no checkout uploads them. The required CodeQL checks prove that the analysis ran, not that its results are clean, so alerts are reviewed by hand. It only runs on GitHub, so there is nothing to run locally. The repository's "default setup" for code scanning must stay off, because it conflicts with this workflow.
 - **Secret scanning with push protection** is on for the repository; see [SECURITY.md](SECURITY.md#secret-scanning).
 
 ## Labels

@@ -27,3 +27,14 @@ allowBuilds: {}
 # Only direct dependencies may come from a Git repository or a tarball URL;
 # the dependencies they pull in must come from the registry.
 blockExoticSubdeps: true
+
+# Advisories that `pnpm audit` ignores, by ID, only in this project. Accepted by
+# the maintainer for T-0.13; review by 2026-12-02. No tool enforces that date.
+# Remove the entry as soon as a version with the fix can be installed.
+# scripts/check-npm-audit.spec.mjs lists the same IDs, so a change shows up there too.
+auditConfig:
+  ignoreGhsas:
+    # minimatch 10, through eslint: a slow match on a hostile pattern. Development
+    # only, on our own patterns. The latest eslint still asks for minimatch 10,
+    # and the fix is in 11.
+    - GHSA-g3hv-75wg-m249
