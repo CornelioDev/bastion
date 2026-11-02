@@ -2,7 +2,7 @@
 *                         @CornelioDev
 
 # Security-sensitive areas always need a maintainer review.
-/crates/bastion-service/  @CornelioDev
-/crates/bastion-ipc/      @CornelioDev
-/crates/bastion-nmh/      @CornelioDev
+/crates/keitora-service/  @CornelioDev
+/crates/keitora-ipc/      @CornelioDev
+/crates/keitora-nmh/      @CornelioDev
 /installer/               @CornelioDev

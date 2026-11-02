@@ -1,6 +1,6 @@
 [package]
-name = "bastion-core"
-description = "Pure domain logic for Bastion: data model, pomodoro engine and blocking rules."
+name = "keitora-ipc"
+description = "IPC protocol between the Keitora service and its clients: messages, versioning and framing."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

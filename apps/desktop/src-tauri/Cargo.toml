@@ -1,6 +1,6 @@
 [package]
-name = "bastion-desktop"
-description = "Bastion desktop app: the Tauri shell that hosts the Vue user interface."
+name = "keitora-desktop"
+description = "Keitora desktop app: the Tauri shell that hosts the Vue user interface."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -13,7 +13,7 @@ publish.workspace = true
 # the binary's because, on Windows, a library and a binary with the same name
 # overwrite each other's debug files (https://github.com/rust-lang/cargo/issues/8519).
 [lib]
-name = "bastion_desktop_lib"
+name = "keitora_desktop_lib"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

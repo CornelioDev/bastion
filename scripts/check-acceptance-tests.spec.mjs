@@ -18,11 +18,11 @@ const PASS = 0;
 const VIOLATION = 1;
 const CANNOT_CHECK = 2;
 
-const RUST_TEST = "crates/bastion-core/tests/acceptance_t1_3.rs";
+const RUST_TEST = "crates/keitora-core/tests/acceptance_t1_3.rs";
 const DESKTOP_TEST = "apps/desktop/tests/acceptance/deep/er/timer.spec.ts";
 const EXTENSION_TEST = "extension/tests/acceptance/popup.spec.ts";
 
-const scratch = mkdtempSync(join(tmpdir(), "bastion-guard-"));
+const scratch = mkdtempSync(join(tmpdir(), "keitora-guard-"));
 after(() => rmSync(scratch, { recursive: true, force: true }));
 
 // An empty file: Git cannot read `os.devNull` as a configuration file on Windows.

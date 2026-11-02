@@ -4,7 +4,7 @@ Guidance for AI coding agents (Claude Code, Codex, Cursor, etc.) working in this
 
 ## Project in one paragraph
 
-Bastion is an open-source Pomodoro timer for Windows that blocks distracting **websites** and **applications** during focus sessions, with a **strict mode** that prevents the session from being stopped early. A privileged Windows service (Rust) is the single source of truth; a desktop UI (Tauri 2 + Vue 3) and a browser extension (Manifest V3) are untrusted clients that talk to it over IPC. See [docs/architecture.md](docs/architecture.md).
+Keitora is an open-source Pomodoro timer for Windows that blocks distracting **websites** and **applications** during focus sessions, with a **strict mode** that prevents the session from being stopped early. A privileged Windows service (Rust) is the single source of truth; a desktop UI (Tauri 2 + Vue 3) and a browser extension (Manifest V3) are untrusted clients that talk to it over IPC. See [docs/architecture.md](docs/architecture.md).
 
 ## Workflow
 
@@ -23,12 +23,12 @@ Task states: `[ ]` todo · `[~]` in progress / blocked · `[x]` done.
 ## Repository layout
 
 ```
-bastion/
+keitora/
 ├── crates/
-│   ├── bastion-core/      # Pure domain logic: model, pomodoro engine, rule matching. No OS deps.
-│   ├── bastion-ipc/       # IPC protocol: message types, versioning, framing. No OS deps.
-│   ├── bastion-service/   # Windows service: process blocking, persistence, IPC server.
-│   └── bastion-nmh/       # Native messaging host: browser extension ⇄ service bridge.
+│   ├── keitora-core/      # Pure domain logic: model, pomodoro engine, rule matching. No OS deps.
+│   ├── keitora-ipc/       # IPC protocol: message types, versioning, framing. No OS deps.
+│   ├── keitora-service/   # Windows service: process blocking, persistence, IPC server.
+│   └── keitora-nmh/       # Native messaging host: browser extension ⇄ service bridge.
 ├── apps/desktop/          # Tauri 2 app. `src/` = Vue 3 frontend, `src-tauri/` = Rust IPC client.
 ├── extension/             # Manifest V3 extension for Chrome and Edge (TypeScript).
 ├── installer/             # WiX v4 MSI sources.
@@ -38,9 +38,9 @@ bastion/
 
 ## Hard rules
 
-- **`bastion-core` and `bastion-ipc` are pure.** No `windows` crate, no `std::process`, no network, no direct system clock. Time comes in through the injectable `Clock` trait. Both crates use `#![forbid(unsafe_code)]`.
+- **`keitora-core` and `keitora-ipc` are pure.** No `windows` crate, no `std::process`, no network, no direct system clock. Time comes in through the injectable `Clock` trait. Both crates use `#![forbid(unsafe_code)]`.
 - **The UI and the extension are untrusted.** The service validates every incoming message. No client request can shorten, pause, or cancel an active strict session, or edit the blocklist it uses.
-- **`unsafe` lives only in `bastion-service/src/sys/`**, one wrapper per Win32 call, each with a `// SAFETY:` comment.
+- **`unsafe` lives only in `keitora-service/src/sys/`**, one wrapper per Win32 call, each with a `// SAFETY:` comment.
 - **No telemetry.** Nothing leaves the user's machine unless a future, opt-in sync feature is explicitly enabled.
 - **Don't build UI from scratch.** Check [shadcn-vue](https://www.shadcn-vue.com) first; custom components only for domain-specific pieces listed in [docs/ui-stack.md](docs/ui-stack.md). Generated `components/ui/*` files are only edited for tokens or variants.
 - **No hard-coded UI strings.** All user-facing text goes through `vue-i18n` (`en` and `es` from day one).
@@ -57,7 +57,7 @@ bastion/
 | Vue | [Vue style guide](https://vuejs.org/style-guide/) priority A–B; Composition API with `<script setup lang="ts">`; `PascalCase` single-file components; composables named `useXxx` in `src/composables/` |
 | TypeScript | `strict: true`, no `any` without a justifying comment |
 | Formatting | `rustfmt`, Prettier (TS/Vue/JSON/MD), `.editorconfig` |
-| Tests | Rust: `cargo test` (unit next to code, in a separate file in `bastion-core` and `bastion-ipc`; integration in `tests/`; see *Writing Rust tests* below). Frontend: Vitest + Vue Test Utils |
+| Tests | Rust: `cargo test` (unit next to code, in a separate file in `keitora-core` and `keitora-ipc`; integration in `tests/`; see *Writing Rust tests* below). Frontend: Vitest + Vue Test Utils |
 | Accessibility | WCAG 2.2 AA: keyboard reachable, visible focus, labels on all controls |
 
 ### Writing Rust tests
@@ -65,7 +65,7 @@ bastion/
 The workspace lints that keep panics out of the service also apply to test code, with a few exemptions. To keep `clippy -D warnings` passing:
 
 - Integration-test files (including `crates/<crate>/tests/acceptance_t<phase>_<n>.rs`) start with the SPDX header, then a `//!` doc comment (acceptance tests list which criterion each test covers), then `#![cfg(test)]`. The `//!` satisfies `missing_docs`; `#![cfg(test)]` lets helper functions in the file use `unwrap`, `expect`, `panic!` and indexing, as `#[test]` functions and `#[cfg(test)]` modules already can.
-- Unit tests go in a `#[cfg(test)] mod tests` in the source file, except in `bastion-core` and `bastion-ipc`, where they live in a sibling file declared with `#[cfg(test)] mod tests;` (`src/engine.rs` with `src/engine/tests.rs`, `src/lib.rs` with `src/tests.rs`). `just coverage` doesn't measure files named `tests.rs`, so the 90 % covers production code only instead of counting test lines. These files start with the SPDX header and need no `//!` or `#![cfg(test)]`: they are `#[cfg(test)]` modules, so the same lint exemptions apply. The one exception is the inline placeholder test in each of those two crates' `lib.rs`, until the crate has real code. `just check` enforces this in those two crates ([CONTRIBUTING.md](CONTRIBUTING.md#development-setup) says what it can't see, which is still for review): the library, in the dev profile with all features, can't compile a file with such a name; a file only tests read must have such a name; `#[test]` goes only in such a file; `#[cfg(test)]` in a measured file goes only directly before `mod tests;`, with no other attribute; and `#[cfg(not(test))]`, `cfg_attr(test` and any `cfg` on `debug_assertions` go nowhere in the crate.
+- Unit tests go in a `#[cfg(test)] mod tests` in the source file, except in `keitora-core` and `keitora-ipc`, where they live in a sibling file declared with `#[cfg(test)] mod tests;` (`src/engine.rs` with `src/engine/tests.rs`, `src/lib.rs` with `src/tests.rs`). `just coverage` doesn't measure files named `tests.rs`, so the 90 % covers production code only instead of counting test lines. These files start with the SPDX header and need no `//!` or `#![cfg(test)]`: they are `#[cfg(test)]` modules, so the same lint exemptions apply. The one exception is the inline placeholder test in each of those two crates' `lib.rs`, until the crate has real code. `just check` enforces this in those two crates ([CONTRIBUTING.md](CONTRIBUTING.md#development-setup) says what it can't see, which is still for review): the library, in the dev profile with all features, can't compile a file with such a name; a file only tests read must have such a name; `#[test]` goes only in such a file; `#[cfg(test)]` in a measured file goes only directly before `mod tests;`, with no other attribute; and `#[cfg(not(test))]`, `cfg_attr(test` and any `cfg` on `debug_assertions` go nowhere in the crate.
 - Don't mark items `pub` in test files; `pub` items at a test crate's root trigger `missing_docs` and `missing_debug_implementations`.
 - These lints apply to all test code too; use the alternative:
   - `unreachable!` → `panic!("…")`; never commit `todo!` or `unimplemented!`.
@@ -84,7 +84,7 @@ The workspace lints that keep panics out of the service also apply to test code,
 # Rust
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -- -D warnings
-node scripts/check-unit-test-layout.mjs  # unit test convention of bastion-core and bastion-ipc
+node scripts/check-unit-test-layout.mjs  # unit test convention of keitora-core and keitora-ipc
 cargo test --workspace
 cargo deny check                       # licenses, advisories, duplicate deps
 
@@ -99,10 +99,10 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 node --test scripts/check-acceptance-tests.spec.mjs scripts/check-npm-audit.spec.mjs scripts/check-npm-licenses.spec.mjs scripts/check-unit-test-layout.spec.mjs
 
 # Run the service without installing it (development)
-cargo run -p bastion-service -- --console
+cargo run -p keitora-service -- --console
 ```
 
-`just coverage` is separate from `just check`, because it needs [`cargo-llvm-cov`](https://github.com/taiki-e/cargo-llvm-cov) (`cargo install cargo-llvm-cov --locked`). It fails if line coverage of `bastion-core` or `bastion-ipc`, each on its own, is below 90 %, and reports the desktop app's and the extension's coverage with no minimum (`pnpm test:coverage` in each package).
+`just coverage` is separate from `just check`, because it needs [`cargo-llvm-cov`](https://github.com/taiki-e/cargo-llvm-cov) (`cargo install cargo-llvm-cov --locked`). It fails if line coverage of `keitora-core` or `keitora-ipc`, each on its own, is below 90 %, and reports the desktop app's and the extension's coverage with no minimum (`pnpm test:coverage` in each package).
 
 `just check-acceptance-tests <base>` is separate too, because it needs a base: it fails if a commit in `<base>..HEAD` changes acceptance tests (`**/tests/acceptance*`) without a subject starting with `test(`, or changes other files along with them, and it can't pass on a shallow clone. CI runs it on pull requests, from the base's copy of the script. It catches accidental changes; a commit prefix proves nothing about who wrote a commit ([CONTRIBUTING.md](CONTRIBUTING.md#acceptance-tests-change-only-in-test-commits)).
 

@@ -6,10 +6,10 @@
  * such as `bg-card`. `shadcn-vue init` wrote it, and `shadcn-vue add` may
  * change it.
  *
- * The values of those variables, Bastion's design tokens, are in
+ * The values of those variables, Keitora's design tokens, are in
  * tokens.css, and its bundled fonts in fonts.css. When `add` writes
  * `:root` or `.dark` variables, or a `--font-sans`, into this file, move
- * them to tokens.css with Bastion's values: here they would override the
+ * them to tokens.css with Keitora's values: here they would override the
  * tokens (CONTRIBUTING.md, "Adding shadcn-vue components").
  *
  * `init` and `add` also put an `@import` of the Geist font from Google Fonts
@@ -29,7 +29,7 @@
    shows. vue-sonner 2 no longer injects them at runtime, which the Content
    Security Policy would block, and the CLI does not add this import. */
 @import "vue-sonner/style.css";
-/* Bastion's design tokens and fonts. */
+/* Keitora's design tokens and fonts. */
 @import "./tokens.css";
 @import "./fonts.css";
 
@@ -69,7 +69,7 @@
   --color-foreground: var(--foreground);
   --color-background: var(--background);
   /*
-   * Bastion's corner radius scale (docs/ui-stack.md, "Design tokens"): fixed
+   * Keitora's corner radius scale (docs/ui-stack.md, "Design tokens"): fixed
    * offsets from the base --radius (12px, tokens.css), so that every corner
    * follows that one value. The CLI writes multiples of --radius here
    * instead, which make controls 12px and cards 17px; keep these lines when

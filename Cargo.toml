@@ -1,12 +1,12 @@
-# Cargo workspace for Bastion's Rust crates. AGENTS.md ("Repository layout")
+# Cargo workspace for Keitora's Rust crates. AGENTS.md ("Repository layout")
 # and docs/architecture.md describe what each crate does.
 
 [workspace]
 members = [
-    "crates/bastion-core",
-    "crates/bastion-ipc",
-    "crates/bastion-service",
-    "crates/bastion-nmh",
+    "crates/keitora-core",
+    "crates/keitora-ipc",
+    "crates/keitora-service",
+    "crates/keitora-nmh",
     "apps/desktop/src-tauri",
 ]
 # A workspace root without a [package] has no edition, so the resolver is set
@@ -25,8 +25,8 @@ edition = "2024"
 # rust-toolchain.toml, which is the only version CI tests. Bump both together.
 rust-version = "1.99"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/CornelioDev/bastion"
-# Bastion ships as an application, not as crates on crates.io.
+repository = "https://github.com/CornelioDev/keitora"
+# Keitora ships as an application, not as crates on crates.io.
 publish = false
 
 [profile.release]
@@ -48,10 +48,10 @@ panic = "unwind"
 missing_docs = "warn"
 # Public types implement `Debug` (Rust API Guidelines, C-DEBUG).
 missing_debug_implementations = "warn"
-# `unsafe` is only allowed in bastion-service/src/sys/, which opts in with an
+# `unsafe` is only allowed in keitora-service/src/sys/, which opts in with an
 # `#[allow(unsafe_code, reason = "...")]` on that module (AGENTS.md, "Hard
 # rules"). It is an error rather than a warning so that even `cargo build`
-# rejects it. bastion-core, bastion-ipc, bastion-nmh and bastion-desktop go
+# rejects it. keitora-core, keitora-ipc, keitora-nmh and keitora-desktop go
 # further with `#![forbid(unsafe_code)]`, which no `#[allow]` can override.
 unsafe_code = "deny"
 # Idioms such as writing `Formatter<'_>` so that borrows are visible.
@@ -64,7 +64,7 @@ unwrap_used = "warn"
 expect_used = "warn"
 # No other operations that can panic, overflow, truncate or end the process.
 # A panic in the service is a denial of service (docs/threat-model.md), and
-# bastion-core and bastion-ipc run inside it. Use `Result`, `.get()`,
+# keitora-core and keitora-ipc run inside it. Use `Result`, `.get()`,
 # `checked_*` / `saturating_*` arithmetic and `try_from` instead.
 # clippy.toml relaxes `panic` and `indexing_slicing` in tests.
 panic = "warn"

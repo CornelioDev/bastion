@@ -26,7 +26,7 @@ const PASS = 0;
 const VIOLATION = 1;
 const CANNOT_CHECK = 2;
 
-const scratch = mkdtempSync(join(tmpdir(), "bastion-licenses-"));
+const scratch = mkdtempSync(join(tmpdir(), "keitora-licenses-"));
 after(() => rmSync(scratch, { recursive: true, force: true }));
 
 writeFileSync(

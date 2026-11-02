@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The Bastion desktop app. It hosts the Vue user interface in a Tauri window.
+//! The Keitora desktop app. It hosts the Vue user interface in a Tauri window.
 //!
-//! The app is an untrusted client of the Bastion service
+//! The app is an untrusted client of the Keitora service
 //! (docs/architecture.md): it will forward the interface's requests to the
 //! service and the service's events back to the interface, but never decides
 //! anything on its own. For now it only opens an empty window.

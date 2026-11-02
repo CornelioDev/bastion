@@ -24,7 +24,7 @@ describe("the build output", () => {
   let outDir: string;
 
   beforeAll(async () => {
-    outDir = mkdtempSync(join(tmpdir(), "bastion-extension-build-"));
+    outDir = mkdtempSync(join(tmpdir(), "keitora-extension-build-"));
     await build({
       root,
       logLevel: "silent",

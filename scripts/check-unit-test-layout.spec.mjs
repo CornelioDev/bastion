@@ -368,18 +368,18 @@ for (const [name, input] of [
 }
 
 test("a manifest with what these crates may depend on is fine", () => {
-  // bastion-ipc may use bastion-core; a proc macro behind a normal dependency is `serde`'s.
+  // keitora-ipc may use keitora-core; a proc macro behind a normal dependency is `serde`'s.
   const input = metadata({
     others: [
       { id: "serde", name: "serde", source: "registry", targets: [{ name: "serde", kind: ["lib"] }] },
-      { id: "bastion-core", name: "bastion-core", source: null, targets: [{ name: "bastion_core", kind: ["lib"] }] },
+      { id: "keitora-core", name: "keitora-core", source: null, targets: [{ name: "keitora_core", kind: ["lib"] }] },
     ],
-    deps: [{ pkg: "serde" }, { pkg: "bastion-core" }],
+    deps: [{ pkg: "serde" }, { pkg: "keitora-core" }],
   });
-  input.packages[0].name = "bastion-ipc";
-  assert.deepEqual(findManifestProblems(input, "bastion-ipc", "/w/crates/c").problems, []);
-  input.packages[0].name = "bastion-core";
-  assert.equal(findManifestProblems(input, "bastion-core", "/w/crates/c").problems.length, 1);
+  input.packages[0].name = "keitora-ipc";
+  assert.deepEqual(findManifestProblems(input, "keitora-ipc", "/w/crates/c").problems, []);
+  input.packages[0].name = "keitora-core";
+  assert.equal(findManifestProblems(input, "keitora-core", "/w/crates/c").problems.length, 1);
 });
 
 /** cargo's report of one build. */
@@ -511,7 +511,7 @@ test("show keeps untrusted text on one line, with no workflow command", () => {
   assert.equal(show('a\n::error::b "##[x]'), String.raw`"a\n::error::b \"#\u0023[x]"`);
 });
 
-const scratch = mkdtempSync(join(tmpdir(), "bastion-layout-"));
+const scratch = mkdtempSync(join(tmpdir(), "keitora-layout-"));
 after(() => rmSync(scratch, { recursive: true, force: true }));
 
 let workspaces = 0;
@@ -523,7 +523,7 @@ class Workspace {
     this.dir = join(scratch, String(workspaces), parent);
     mkdirSync(this.dir, { recursive: true });
     cpSync(TOOLCHAIN, join(this.dir, "rust-toolchain.toml"));
-    const lock = ["bastion-core", "bastion-ipc", "other"]
+    const lock = ["keitora-core", "keitora-ipc", "other"]
       .map((name) => `[[package]]\nname = "${name}"\nversion = "0.0.0"\n`)
       .join("\n");
     this.write({
@@ -532,7 +532,7 @@ class Workspace {
       "crates/other/Cargo.toml": manifest("other"),
       "crates/other/src/lib.rs": "",
     });
-    for (const name of ["bastion-core", "bastion-ipc"]) {
+    for (const name of ["keitora-core", "keitora-ipc"]) {
       this.write({
         [`crates/${name}/Cargo.toml`]: manifest(name),
         [`crates/${name}/src/lib.rs`]: `//! Docs.\n\n#![forbid(unsafe_code)]\n\n${PLACEHOLDER}`,
@@ -567,15 +567,15 @@ class Workspace {
 }
 
 const WORKSPACE_MANIFEST =
-  '[workspace]\nmembers = ["crates/bastion-core", "crates/bastion-ipc", "crates/other"]\nresolver = "3"\n';
+  '[workspace]\nmembers = ["crates/keitora-core", "crates/keitora-ipc", "crates/other"]\nresolver = "3"\n';
 
 /** The manifest of a package with this name. */
 function manifest(name) {
   return `[package]\nname = "${name}"\nversion = "0.0.0"\nedition = "2024"\n`;
 }
 
-const CORE = "crates/bastion-core/src";
-const IPC = "crates/bastion-ipc/src";
+const CORE = "crates/keitora-core/src";
+const IPC = "crates/keitora-ipc/src";
 
 /** A crate root with the given code before the placeholder. */
 const lib = (code) => `//! Docs.\n\n${code}\n\n${PLACEHOLDER}`;
@@ -619,7 +619,7 @@ test("exit 0: sibling test files, in each accepted form", () => {
     [`${CORE}/rules/tests/mod.rs`]: "mod more;\n#[test]\nfn a() {}\n",
     [`${CORE}/rules/tests/more.rs`]: "#[test]\nfn b() {}\n",
     [`${IPC}/lib.rs`]: `#[path = "../other/a b.rs"]\npub mod a;\n${PLACEHOLDER}`,
-    "crates/bastion-ipc/other/a b.rs": A,
+    "crates/keitora-ipc/other/a b.rs": A,
   });
   workspace.expect(PASS);
 });
@@ -639,10 +639,10 @@ test("exit 0: a clone in a path with spaces, é and a parent directory named tes
 test("exit 0: what tests and the library may read", () => {
   const workspace = new Workspace();
   workspace.write({
-    "crates/bastion-core/Cargo.toml": `${manifest("bastion-core")}\n[features]\nx = []\n`,
+    "crates/keitora-core/Cargo.toml": `${manifest("keitora-core")}\n[features]\nx = []\n`,
     // A #[cfg(unix)] module is in neither build, and a feature's module in both.
     [`${CORE}/lib.rs`]: `#![doc = include_str!("../README.md")]\n#[cfg(unix)]\nmod only_unix;\n#[cfg(feature = "x")]\npub mod gated;\npub mod shared;\n${TESTED.replace("//! Docs.\n", "")}`,
-    "crates/bastion-core/README.md": "Docs.\n",
+    "crates/keitora-core/README.md": "Docs.\n",
     [`${CORE}/only_unix.rs`]: A,
     [`${CORE}/gated.rs`]: A,
     [`${CORE}/shared.rs`]: A,
@@ -652,10 +652,10 @@ test("exit 0: what tests and the library may read", () => {
     [`${CORE}/tests/support.rs`]: "pub fn s() {}\n",
     [`${CORE}/a.json`]: "",
     "fixtures/a.json": "",
-    "crates/bastion-core/tests/acceptance_t1_1.rs":
-      "#![cfg(test)]\n#[test]\nfn t() {\n    bastion_core::a();\n}\n",
+    "crates/keitora-core/tests/acceptance_t1_1.rs":
+      "#![cfg(test)]\n#[test]\nfn t() {\n    keitora_core::a();\n}\n",
     // The crate's own target directory isn't source.
-    "crates/bastion-core/target/x.rs": "#[cfg(not(test))]\nfn a() {}\n",
+    "crates/keitora-core/target/x.rs": "#[cfg(not(test))]\nfn a() {}\n",
   });
   workspace.expect(PASS);
 });
@@ -715,10 +715,10 @@ violationBatch("what the source says, anywhere in the crate", lib(""), [
   ["double.rs", { [`${IPC}/double.rs`]: "#[cfg(not(test))]\npub fn a() {}\n#[cfg(test)]\npub fn a() {}\n" }],
   ["cfg_attr.rs", { [`${IPC}/tests/cfg_attr.rs`]: "#[cfg_attr(test, derive(Debug))]\nstruct A;\n" }],
   ["nested.rs", { [`${IPC}/a/nested.rs`]: "#[test]\nfn a() {}\n" }],
-  ["extra", { "crates/bastion-core/extra/x.rs": "#[test]\nfn t() {}\n" }],
-  ["release.rs", { "crates/bastion-ipc/tests/release.rs": "#![allow(unused)]\n#[cfg(debug_assertions)]\nfn a() {}\nfn main() {}\n" }],
-  ["integration.rs", { "crates/bastion-ipc/tests/integration.rs": "#[cfg(not(test))]\nfn a() {}\nfn main() {}\n" }],
-  ["builder.rs", { "crates/bastion-core/extra/examples/builder.rs": "#[cfg_attr(test, derive(Debug))]\nstruct A;\n" }],
+  ["extra", { "crates/keitora-core/extra/x.rs": "#[test]\nfn t() {}\n" }],
+  ["release.rs", { "crates/keitora-ipc/tests/release.rs": "#![allow(unused)]\n#[cfg(debug_assertions)]\nfn a() {}\nfn main() {}\n" }],
+  ["integration.rs", { "crates/keitora-ipc/tests/integration.rs": "#[cfg(not(test))]\nfn a() {}\nfn main() {}\n" }],
+  ["builder.rs", { "crates/keitora-core/extra/examples/builder.rs": "#[cfg_attr(test, derive(Debug))]\nstruct A;\n" }],
   ["path_inc.rs", { [`${IPC}/path_inc.rs`]: '#[path = "a.inc"]\nmod a;\n' }],
   ["include_inc.rs", { [`${IPC}/include_inc.rs`]: 'include!("a.inc");\n' }],
   ["select.rs", { [`${IPC}/select.rs`]: "core::cfg_select! { test => {} _ => {} }\n" }],
@@ -728,7 +728,7 @@ test("exit 1: a compiled .rs file in the crate's target directory is still read"
   const workspace = new Workspace();
   workspace.write({
     [`${CORE}/lib.rs`]: lib('#[path = "../target/a.rs"]\npub mod a;'),
-    "crates/bastion-core/target/a.rs": "#[test]\nfn a() {}\n",
+    "crates/keitora-core/target/a.rs": "#[test]\nfn a() {}\n",
   });
   const { stderr } = workspace.expect(VIOLATION);
   assert.match(stderr, /test attribute/);
@@ -743,8 +743,8 @@ violationBatch("what only tests read, under names coverage measures", TESTED, [
   [
     "pad_runner",
     {
-      "crates/bastion-core/Cargo.toml": `${manifest("bastion-core")}\n[[test]]\nname = "pad"\npath = "pad_runner/run.rs"\nharness = false\n`,
-      "crates/bastion-core/pad_runner/run.rs": "fn main() {}\n",
+      "crates/keitora-core/Cargo.toml": `${manifest("keitora-core")}\n[[test]]\nname = "pad"\npath = "pad_runner/run.rs"\nharness = false\n`,
+      "crates/keitora-core/pad_runner/run.rs": "fn main() {}\n",
       [`${CORE}/tests.rs`]:
         '#[path = "support.rs"]\nmod a;\n#[path = "Tests/up.rs"]\nmod b;\n#[path = "../../other/src/s.rs"]\nmod c;\npub const D: &[u8] = include_bytes!("fixture.bin");\n',
     },
@@ -761,34 +761,34 @@ test("exit 1: [profile.test] that differs from dev", () => {
 test("exit 1: a build script, which doesn't run", () => {
   const workspace = new Workspace();
   workspace.write({
-    "crates/bastion-core/build.rs": 'fn main() {\n    std::fs::write("ran", "").unwrap();\n}\n',
+    "crates/keitora-core/build.rs": 'fn main() {\n    std::fs::write("ran", "").unwrap();\n}\n',
   });
   const { stderr } = workspace.expect(VIOLATION);
   assert.match(stderr, /build script/);
-  assert.equal(existsSync(join(workspace.dir, "crates/bastion-core/ran")), false);
+  assert.equal(existsSync(join(workspace.dir, "crates/keitora-core/ran")), false);
 });
 
 test("exit 1: one crate's manifest problem stops the other's build, which would run it", () => {
   const workspace = new Workspace();
   workspace.write({
     "Cargo.lock":
-      'version = 4\n\n[[package]]\nname = "bastion-core"\nversion = "0.0.0"\n\n[[package]]\nname = "bastion-ipc"\nversion = "0.0.0"\ndependencies = ["bastion-core"]\n\n[[package]]\nname = "other"\nversion = "0.0.0"\n',
-    "crates/bastion-ipc/Cargo.toml": `${manifest("bastion-ipc")}\n[dependencies]\nbastion-core = { path = "../bastion-core" }\n`,
-    "crates/bastion-core/build.rs": 'fn main() {\n    std::fs::write("ran", "").unwrap();\n}\n',
+      'version = 4\n\n[[package]]\nname = "keitora-core"\nversion = "0.0.0"\n\n[[package]]\nname = "keitora-ipc"\nversion = "0.0.0"\ndependencies = ["keitora-core"]\n\n[[package]]\nname = "other"\nversion = "0.0.0"\n',
+    "crates/keitora-ipc/Cargo.toml": `${manifest("keitora-ipc")}\n[dependencies]\nkeitora-core = { path = "../keitora-core" }\n`,
+    "crates/keitora-core/build.rs": 'fn main() {\n    std::fs::write("ran", "").unwrap();\n}\n',
   });
   const { stderr } = workspace.expect(VIOLATION);
   assert.match(stderr, /build script/);
-  assert.equal(existsSync(join(workspace.dir, "crates/bastion-core/ran")), false);
+  assert.equal(existsSync(join(workspace.dir, "crates/keitora-core/ran")), false);
 });
 
 test("exit 1: a workspace member inside the crate", () => {
   const workspace = new Workspace();
-  const lock = ["bastion-core", "bastion-ipc", "engine-shell", "other"]
+  const lock = ["keitora-core", "keitora-ipc", "engine-shell", "other"]
     .map((name) => `[[package]]\nname = "${name}"\nversion = "0.0.0"\n`)
     .join("\n");
   workspace.write({
     "Cargo.toml":
-      '[workspace]\nmembers = ["crates/bastion-core", "crates/bastion-core/src/engine", "crates/bastion-ipc", "crates/other"]\nresolver = "3"\n',
+      '[workspace]\nmembers = ["crates/keitora-core", "crates/keitora-core/src/engine", "crates/keitora-ipc", "crates/other"]\nresolver = "3"\n',
     "Cargo.lock": `version = 4\n\n${lock}`,
     [`${CORE}/engine/Cargo.toml`]: `${manifest("engine-shell")}\n[lib]\npath = "shell.rs"\n`,
     [`${CORE}/engine/shell.rs`]: "",
@@ -805,7 +805,7 @@ test("exit 1: what is wrong in both crates is listed, with its line", () => {
     [`${IPC}/x_tests.rs`]: A,
   });
   const { stderr } = workspace.expect(VIOLATION);
-  assert.match(stderr, /bastion-core\\\\src\\\\lib\.rs":3:|bastion-core\/src\/lib\.rs":3:/);
+  assert.match(stderr, /keitora-core\\\\src\\\\lib\.rs":3:|keitora-core\/src\/lib\.rs":3:/);
   assert.match(stderr, /x_tests\.rs/);
 });
 
@@ -848,26 +848,26 @@ test("exit 2: a stale dep-info file doesn't stand in for a build that fails", ()
 });
 
 for (const [name, change] of [
-  ["a crate's directory is missing", { "crates/bastion-ipc": null }],
+  ["a crate's directory is missing", { "crates/keitora-ipc": null }],
   ["a crate's src has no Rust files", { [`${IPC}/lib.rs`]: null, [`${IPC}/notes.txt`]: "x" }],
   [
     "the crate is not built from src/lib.rs",
     {
-      "crates/bastion-core/Cargo.toml": `${manifest("bastion-core")}\n[lib]\npath = "other/lib.rs"\n`,
-      "crates/bastion-core/other/lib.rs": A,
+      "crates/keitora-core/Cargo.toml": `${manifest("keitora-core")}\n[lib]\npath = "other/lib.rs"\n`,
+      "crates/keitora-core/other/lib.rs": A,
     },
   ],
   [
     "the workspace has another crate under that name",
     {
       "Cargo.toml":
-        '[workspace]\nmembers = ["moved/bastion-core", "crates/bastion-ipc", "crates/other"]\nresolver = "3"\n',
-      "moved/bastion-core/Cargo.toml": manifest("bastion-core"),
-      "moved/bastion-core/src/lib.rs": A,
+        '[workspace]\nmembers = ["moved/keitora-core", "crates/keitora-ipc", "crates/other"]\nresolver = "3"\n',
+      "moved/keitora-core/Cargo.toml": manifest("keitora-core"),
+      "moved/keitora-core/src/lib.rs": A,
     },
   ],
-  ["the library has another name", { "crates/bastion-core/Cargo.toml": `${manifest("bastion-core")}\n[lib]\nname = "renamed"\n` }],
-  ["the library has no test build", { "crates/bastion-core/Cargo.toml": `${manifest("bastion-core")}\n[lib]\ntest = false\n` }],
+  ["the library has another name", { "crates/keitora-core/Cargo.toml": `${manifest("keitora-core")}\n[lib]\nname = "renamed"\n` }],
+  ["the library has no test build", { "crates/keitora-core/Cargo.toml": `${manifest("keitora-core")}\n[lib]\ntest = false\n` }],
   ["Cargo.lock doesn't match, because of --locked", { "Cargo.lock": "version = 4\n" }],
   ["a source file with an unterminated comment", { [`${IPC}/orphan.rs`]: "/* #[test] fn a() {}\n" }],
   ["a source file that isn't UTF-8", { [`${IPC}/orphan.rs`]: Buffer.from([0x2f, 0x2f, 0xff, 0x0a]) }],
@@ -907,7 +907,7 @@ test("exit 1 beats exit 2: a violation in one crate is listed if the other doesn
     [`${IPC}/lib.rs`]: lib("#[test]\nfn a() {}"),
   });
   const { stderr } = workspace.expect(VIOLATION);
-  assert.match(stderr, /Cannot check the unit test layout of bastion-core/);
+  assert.match(stderr, /Cannot check the unit test layout of keitora-core/);
 });
 
 test(

@@ -5,7 +5,7 @@
 
 ## Context
 
-Bastion is developed in the open. Contributors need clarity on licensing, and the code should be easy to reuse alongside the Rust ecosystem.
+Keitora is developed in the open. Contributors need clarity on licensing, and the code should be easy to reuse alongside the Rust ecosystem.
 
 ## Decision
 
@@ -16,7 +16,7 @@ Bastion is developed in the open. Contributors need clarity on licensing, and th
 
 ## Alternatives considered
 
-- **GPL-3.0** — keeps forks open, but limits reuse of `bastion-core` in other projects.
+- **GPL-3.0** — keeps forks open, but limits reuse of `keitora-core` in other projects.
 - **CLA** — more legal flexibility for the maintainer, more friction for contributors.
 
 ## Consequences

@@ -1,6 +1,6 @@
 [package]
-name = "bastion-ipc"
-description = "IPC protocol between the Bastion service and its clients: messages, versioning and framing."
+name = "keitora-service"
+description = "Keitora Windows service: holds the session state, blocks applications and serves IPC clients."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

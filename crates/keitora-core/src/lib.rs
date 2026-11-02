@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The protocol spoken between the Bastion service and its clients (the
-//! desktop app and the native messaging host): message types, versioning and
-//! line-delimited JSON framing.
+//! Pure domain logic for Keitora: the data model, the pomodoro engine and the
+//! rules that decide which websites and applications are blocked.
 //!
-//! Like `bastion-core`, this crate has no operating-system dependencies, so
-//! every client can share it and it can be tested anywhere. The protocol is
-//! described in `docs/architecture.md`.
+//! This crate has no operating-system dependencies: no Windows APIs, no
+//! processes, no network, and no direct reads of the system clock (time is
+//! always passed in by the caller). That keeps it easy to test and reusable on
+//! other platforms.
 
 #![forbid(unsafe_code)]
 

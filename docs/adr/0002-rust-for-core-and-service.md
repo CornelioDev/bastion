@@ -9,7 +9,7 @@ The service needs low-level Windows APIs, small binaries without a runtime, and 
 
 ## Decision
 
-Use Rust. `bastion-core` is pure and portable (`#![forbid(unsafe_code)]`); `bastion-service` uses `windows-rs`, with `unsafe` confined to one module.
+Use Rust. `keitora-core` is pure and portable (`#![forbid(unsafe_code)]`); `keitora-service` uses `windows-rs`, with `unsafe` confined to one module.
 
 ## Alternatives considered
 

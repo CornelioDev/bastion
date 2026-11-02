@@ -1,6 +1,6 @@
 # Development workflow
 
-Bastion is built mostly by AI agents under the direction of a maintainer who acts as **product owner**: the maintainer decides what gets built and accepts or rejects deliverables, while correctness and security are verified by automated checks and by agents that are independent from the one writing the code ([ADR-0008](adr/0008-agent-based-development-workflow.md)).
+Keitora is built mostly by AI agents under the direction of a maintainer who acts as **product owner**: the maintainer decides what gets built and accepts or rejects deliverables, while correctness and security are verified by automated checks and by agents that are independent from the one writing the code ([ADR-0008](adr/0008-agent-based-development-workflow.md)).
 
 Human contributors follow the same quality gates through pull requests; see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
@@ -55,12 +55,12 @@ Acceptance tests are the contract between the maintainer and the developer, so o
 
 | Code | Acceptance tests (QA only) | Unit tests (developer) |
 |---|---|---|
-| `bastion-core`, `bastion-ipc` | `crates/<crate>/tests/acceptance_t<phase>_<n>.rs` | Sibling file declared with `#[cfg(test)] mod tests;` (`src/engine.rs` with `src/engine/tests.rs`) |
+| `keitora-core`, `keitora-ipc` | `crates/<crate>/tests/acceptance_t<phase>_<n>.rs` | Sibling file declared with `#[cfg(test)] mod tests;` (`src/engine.rs` with `src/engine/tests.rs`) |
 | Other Rust crates | `crates/<crate>/tests/acceptance_t<phase>_<n>.rs` | `#[cfg(test)] mod tests` in the source file |
 | Desktop UI | `apps/desktop/tests/acceptance/` | `*.spec.ts` next to the file |
 | Extension | `extension/tests/acceptance/` | `*.spec.ts` next to the file |
 
-`bastion-core` and `bastion-ipc` keep unit tests in separate files because `just coverage` doesn't measure those, so its 90 % covers production code only; they are still `#[cfg(test)]` modules, so the test lint exemptions in [AGENTS.md](../AGENTS.md#writing-rust-tests) apply. `just check` enforces this layout, and reviewers still look for what a build and a text scan can't see ([CONTRIBUTING.md](../CONTRIBUTING.md#development-setup)).
+`keitora-core` and `keitora-ipc` keep unit tests in separate files because `just coverage` doesn't measure those, so its 90 % covers production code only; they are still `#[cfg(test)]` modules, so the test lint exemptions in [AGENTS.md](../AGENTS.md#writing-rust-tests) apply. `just check` enforces this layout, and reviewers still look for what a build and a text scan can't see ([CONTRIBUTING.md](../CONTRIBUTING.md#development-setup)).
 
 CI's `Acceptance tests` check on pull requests, which is `just check-acceptance-tests <base>` run from the base's copy of the script, fails if a commit changes these files without a subject starting with `test(`, or changes other files along with them ([CONTRIBUTING.md](../CONTRIBUTING.md#acceptance-tests-change-only-in-test-commits)). That catches accidents; it doesn't prove who wrote a commit.
 
@@ -117,10 +117,10 @@ Until **T-2.3** (the IPC protocol) is approved, run one task at a time. After it
 
 `main`'s ruleset requires a branch to be up to date before merging, so each merge makes the other open branches update and run CI again. Revisit that requirement when parallel loops start.
 
-Parallel loops must not change `bastion-ipc`; protocol changes go through a dedicated task on `main` that the other fronts then pull in. The maintainer still approves each task individually.
+Parallel loops must not change `keitora-ipc`; protocol changes go through a dedicated task on `main` that the other fronts then pull in. The maintainer still approves each task individually.
 
 ## Release gate
 
-A release may be published as stable only after a **human** security review of `bastion-service`, `bastion-ipc`, `bastion-nmh` and the installer. Until then, releases are tagged as pre-releases (`v0.x.y-beta.n`) and the README says so.
+A release may be published as stable only after a **human** security review of `keitora-service`, `keitora-ipc`, `keitora-nmh` and the installer. Until then, releases are tagged as pre-releases (`v0.x.y-beta.n`) and the README says so.
 
 `release-please` is configured for this: it proposes `-beta.n` versions and marks those GitHub Releases as pre-releases. Configuration alone doesn't hold the gate: text in a commit message, such as a `Release-As:` footer, can override it and produce a version with no `-beta.n`. So whoever merges the release pull request confirms that its title has `-beta.` while the gate holds ([CONTRIBUTING.md](../CONTRIBUTING.md#merging-the-release-pull-request)). It keeps that pull request open, and by rule a release only happens when the maintainer merges it, which nothing enforces. Orchestrators and agents never merge it as part of a task.

@@ -1,4 +1,4 @@
-# Contributing to Bastion
+# Contributing to Keitora
 
 Thanks for your interest! This guide covers how to set up the project, how we work, and what we expect from a pull request.
 
@@ -27,14 +27,14 @@ Requirements (Windows 10 or 11):
 CI installs these same versions of `just`, `cargo-deny` and `cargo-llvm-cov` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)); change them there and here together. CI doesn't use `lefthook`, so this list is what pins its version.
 
 ```bash
-git clone https://github.com/CornelioDev/bastion.git
-cd bastion
+git clone https://github.com/CornelioDev/keitora.git
+cd keitora
 lefthook install
 pnpm install --dir apps/desktop
 pnpm install --dir extension
 
 # Terminal 1: the service, without installing it (an elevated terminal is needed to block processes)
-cargo run -p bastion-service -- --console
+cargo run -p keitora-service -- --console
 
 # Terminal 2: the desktop app
 pnpm --dir apps/desktop tauri dev
@@ -54,7 +54,7 @@ To measure test coverage, which `just check` does not do:
 just coverage
 ```
 
-It fails if the tests cover less than 90 % of the lines of `bastion-core` or of `bastion-ipc`, each crate counted on its own, with all features on. So that the 90 % measures production code only, the unit tests of these two crates live in a separate file, declared with `#[cfg(test)] mod tests;` (`src/engine.rs` with `src/engine/tests.rs`); lines of a test module inside a source file would count as covered code ([AGENTS.md](AGENTS.md#writing-rust-tests)).
+It fails if the tests cover less than 90 % of the lines of `keitora-core` or of `keitora-ipc`, each crate counted on its own, with all features on. So that the 90 % measures production code only, the unit tests of these two crates live in a separate file, declared with `#[cfg(test)] mod tests;` (`src/engine.rs` with `src/engine/tests.rs`); lines of a test module inside a source file would count as covered code ([AGENTS.md](AGENTS.md#writing-rust-tests)).
 
 What the gate doesn't measure:
 
@@ -63,11 +63,11 @@ What the gate doesn't measure:
 - Code under `#[cfg(not(test))]`, which is compiled only outside tests. That includes a real function that a test double replaces during tests.
 - Code under `#[cfg(not(feature = "..."))]`, which isn't compiled with `--all-features`. Code under `#[cfg(feature = "...")]` is measured.
 
-A crate with no functions at all fails with "no coverage data found", so `bastion-core` and `bastion-ipc` each have one inline placeholder test, the only inline test allowed in them, until they have real code.
+A crate with no functions at all fails with "no coverage data found", so `keitora-core` and `keitora-ipc` each have one inline placeholder test, the only inline test allowed in them, until they have real code.
 
 `just check` enforces this layout in those two crates (`just unit-test-layout`, [`scripts/check-unit-test-layout.mjs`](scripts/check-unit-test-layout.mjs)). It exits with 0 when they follow it, with 1 when they don't (each violation is listed), and with 2 when it can't tell, which is never a pass. It is a guard against accidents and ordinary code, not a sandbox. It fails if:
 
-- The manifest has a target other than the library and integration tests (so no build script, binary, example or bench), a direct proc-macro dependency, or a local dependency (by path or `[patch]`) other than `bastion-ipc` on `bastion-core`, or if another workspace member lives inside the crate's directory. A problem here in either crate stops both builds, as they would run that code.
+- The manifest has a target other than the library and integration tests (so no build script, binary, example or bench), a direct proc-macro dependency, or a local dependency (by path or `[patch]`) other than `keitora-ipc` on `keitora-core`, or if another workspace member lives inside the crate's directory. A problem here in either crate stops both builds, as they would run that code.
 - The library, built in the dev profile with all features, reads a file with one of the names above (`rustc/<hash or version>/` as well, which cargo-llvm-cov also leaves out) or a file outside the crate's directory. This comes from what the compiler reports having read, so `#[path]`, `include!` and macros that expand in that build don't get around it.
 - A file only the tests read is one coverage measures. Its lines would add to the score, so a test helper has to be named `tests.rs` or `*_tests.rs`, or be in a directory named `tests`.
 - A build reads a file that is neither Rust nor data (`.json`, `.md`, `.toml`) under a name coverage measures, or a written `#[path]` or `include!` names a file that isn't `.rs`, or a `use` renames `include`. What a macro assembles is listed below.
@@ -106,7 +106,7 @@ pnpm dlx shadcn-vue@2.9.0 add <name>
 Then:
 
 1. Remove the Google Fonts `@import` that the CLI puts at the top of `src/styles/main.css` every time it runs. The app makes no network requests at runtime and bundles Geist itself (`src/styles/fonts.css`); `pnpm test` fails while the import is there.
-2. Check what the CLI changed in `src/styles/main.css` (`git diff`). Bastion's design tokens live in `src/styles/tokens.css`, and anything the CLI writes into `main.css` overrides them. Keep the `--color-…: var(--…)` lines it adds to `@theme inline`, but keep Bastion's `--radius-sm` … `--radius-4xl` lines there, offsets from `--radius` ([docs/ui-stack.md](docs/ui-stack.md#design-tokens)), if it rewrites them as multiples of it; `pnpm test` fails when they change. If it wrote `:root` or `.dark` blocks, or a `--font-sans`, delete them, and give any variable that is new in them a value in `tokens.css` for both themes, following that file's top comment (contrast included). `pnpm test` fails when a token from [docs/ui-stack.md](docs/ui-stack.md#design-tokens) or a font changes.
+2. Check what the CLI changed in `src/styles/main.css` (`git diff`). Keitora's design tokens live in `src/styles/tokens.css`, and anything the CLI writes into `main.css` overrides them. Keep the `--color-…: var(--…)` lines it adds to `@theme inline`, but keep Keitora's `--radius-sm` … `--radius-4xl` lines there, offsets from `--radius` ([docs/ui-stack.md](docs/ui-stack.md#design-tokens)), if it rewrites them as multiples of it; `pnpm test` fails when they change. If it wrote `:root` or `.dark` blocks, or a `--font-sans`, delete them, and give any variable that is new in them a value in `tokens.css` for both themes, following that file's top comment (contrast included). `pnpm test` fails when a token from [docs/ui-stack.md](docs/ui-stack.md#design-tokens) or a font changes.
 3. Check what the CLI changed in `package.json`, and remove the packages the app does not use. `form`, for example, adds `zod` and `@vee-validate/zod`, which are left out until a Zod release without known advisories works with VeeValidate (`pnpm audit`).
 4. Install any package the new component imports that the CLI did not add (it does not add `@unovis/vue` and `@unovis/ts` for `chart`, for example), and check that `pnpm typecheck`, `pnpm lint` and `pnpm test` pass.
 5. Add the component to the gallery if the app uses it.
@@ -179,7 +179,7 @@ The `DCO` app doesn't require a sign-off from a commit attributed to a bot, such
 
 1. Fork and create a branch from `main` (`feat/blocklist-exceptions`, `fix/pipe-reconnect`).
 2. Keep PRs focused: one logical change.
-3. Add or update tests. Logic in `bastion-core` and `bastion-ipc` is developed test-first.
+3. Add or update tests. Logic in `keitora-core` and `keitora-ipc` is developed test-first.
 4. Run `just check` locally; CI runs it and [more](#what-ci-runs). Don't modify acceptance tests (`**/tests/acceptance*`) in a feature PR; propose changes to them in a separate PR, in commits whose subject starts with `test(`, which is what [`just check-acceptance-tests`](#acceptance-tests-change-only-in-test-commits) checks.
 5. Update docs and the roadmap when relevant. `CHANGELOG.md` and version numbers are generated: see [Releases](#releases).
 6. Fill in the PR template. A maintainer squash-merges the PR once the required checks pass.
@@ -192,7 +192,7 @@ The `DCO` app doesn't require a sign-off from a commit attributed to a bot, such
 Before merging, ask GitHub what the squash commit will say, which changes nothing. The headline must be the Conventional Commits subject and the body must have the `Signed-off-by` lines:
 
 ```bash
-gh api graphql -F number=<number> -f query='query($number: Int!) { repository(owner: "CornelioDev", name: "bastion") { pullRequest(number: $number) { viewerMergeHeadlineText(mergeType: SQUASH) viewerMergeBodyText(mergeType: SQUASH) } } }'
+gh api graphql -F number=<number> -f query='query($number: Int!) { repository(owner: "CornelioDev", name: "keitora") { pullRequest(number: $number) { viewerMergeHeadlineText(mergeType: SQUASH) viewerMergeBodyText(mergeType: SQUASH) } } }'
 ```
 
 Then merge from the command line, with the address you sign off with, so that GitHub doesn't pick another address of your account as the author:
@@ -208,7 +208,7 @@ gh pr merge <number> --squash --delete-branch --author-email <email>
 | Check | What it does | Locally |
 |---|---|---|
 | `just check` | Formatting, lints, unit test layout, tests, `cargo deny`, the frontend packages, and the tests of the scripts | `just check` |
-| `just coverage` | 90 % of the lines of `bastion-core` and `bastion-ipc`; a report for the frontend packages | `just coverage` |
+| `just coverage` | 90 % of the lines of `keitora-core` and `keitora-ipc`; a report for the frontend packages | `just coverage` |
 | `npm dependencies` | `pnpm audit` of every npm dependency, development ones included | `just npm-dependencies` |
 | `Acceptance tests` | [The rule below](#acceptance-tests-change-only-in-test-commits); pull requests only | `just check-acceptance-tests origin/main` |
 | `Analyze (rust)`, `Analyze (javascript-typescript)`, `Upload (…)` | [CodeQL](#security-checks) | Nothing to run |
@@ -339,8 +339,8 @@ Do this before merging the workflow into `main`, and again only if the key is re
 **Check the environment before merging the workflow, or any change to it.** This is mandatory: if the environment doesn't exist when the workflow first runs, GitHub creates it with no branch rule, and a key added to it later is readable from any branch. These two commands must show `custom_branch_policies: true`, and one entry, `main`, of type `branch`:
 
 ```bash
-gh api repos/CornelioDev/bastion/environments/release-please --jq .deployment_branch_policy
-gh api repos/CornelioDev/bastion/environments/release-please/deployment-branch-policies --jq '.branch_policies[]|{name,type}'
+gh api repos/CornelioDev/keitora/environments/release-please --jq .deployment_branch_policy
+gh api repos/CornelioDev/keitora/environments/release-please/deployment-branch-policies --jq '.branch_policies[]|{name,type}'
 ```
 
 If the variable or secret is missing, the run fails at "Get a token from the GitHub App", with nothing published. No check requires this workflow, so merges carry on; run it again from the Actions tab once it is fixed.

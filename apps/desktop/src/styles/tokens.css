@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: MIT OR Apache-2.0 */
 
 /*
- * Bastion's design tokens: the colors, radius and fonts of the app, as the
+ * Keitora's design tokens: the colors, radius and fonts of the app, as the
  * CSS variables that the shadcn-vue components in src/components/ui/ read,
- * plus Bastion's own tokens for break phases and strict mode.
+ * plus Keitora's own tokens for break phases and strict mode.
  *
  * The theme is the `dark` class on <html>: `:root` holds the light values,
  * `.dark` the dark ones. There is deliberately no `prefers-color-scheme`
@@ -37,7 +37,7 @@
  * come with the screens in phase F3.
  *
  * The shadcn-vue CLI writes its own `:root` and `.dark` variables into
- * main.css when it adds some components; move them here with Bastion's
+ * main.css when it adds some components; move them here with Keitora's
  * values (CONTRIBUTING.md, "Adding shadcn-vue components").
  */
 
@@ -125,7 +125,7 @@
 }
 
 /*
- * Tailwind utilities for Bastion's own tokens (bg-break, text-strict,
+ * Tailwind utilities for Keitora's own tokens (bg-break, text-strict,
  * text-strict-foreground, ...) and its fonts (font-sans, font-mono).
  * `inline` makes the color utilities read the variables above, so they
  * follow the theme. main.css maps the shadcn-vue variables the same way.

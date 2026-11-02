@@ -9,7 +9,7 @@ The extension needs the active blocklist and session state from the service.
 
 ## Decision
 
-A small native messaging host (`bastion-nmh.exe`) bridges the extension's stdin/stdout to the service's named pipe.
+A small native messaging host (`keitora-nmh.exe`) bridges the extension's stdin/stdout to the service's named pipe.
 
 ## Alternatives considered
 
