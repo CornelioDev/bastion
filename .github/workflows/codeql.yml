@@ -45,7 +45,7 @@ jobs:
     # Windows, like the rest of CI, and for a reason that matters: CodeQL's Rust
     # extractor skips code that `#[cfg]` turns off for the machine it runs on, so
     # on Linux it would not see `#[cfg(windows)]` code, which is what most of
-    # bastion-service will be.
+    # keitora-service will be.
     runs-on: windows-latest
     timeout-minutes: 60
     # Not even `security-events: read`, which would let the pull request's code read

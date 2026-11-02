@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //
 // Checks that the 90 % of `just coverage` keeps measuring production code in
-// `bastion-core` and `bastion-ipc`. `just check` runs it (`just unit-test-layout`),
+// `keitora-core` and `keitora-ipc`. `just check` runs it (`just unit-test-layout`),
 // from the root of the workspace:
 //
 //     node scripts/check-unit-test-layout.mjs
@@ -112,7 +112,7 @@ const EXIT_VIOLATION = 1;
 const EXIT_CANNOT_CHECK = 2;
 
 /** The crates this applies to: the ones `just coverage` holds to 90 %. */
-const CRATES = ["bastion-core", "bastion-ipc"];
+const CRATES = ["keitora-core", "keitora-ipc"];
 
 /** Where this builds, below the workspace root; `/target/` is ignored by Git. */
 const TARGET_DIR = join("target", "unit-test-layout");

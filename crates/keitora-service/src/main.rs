@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The Bastion Windows service, the single source of truth for sessions and
+//! The Keitora Windows service, the single source of truth for sessions and
 //! blocklists. It persists state, blocks applications and serves the desktop
 //! app and the native messaging host over a named pipe.
 //!

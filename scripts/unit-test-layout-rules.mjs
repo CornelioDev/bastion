@@ -569,7 +569,7 @@ export function isDataFile(name) {
 const TARGET_KINDS = new Set(["lib", "test"]);
 
 /** The path dependencies these crates may have, by crate. */
-const PATH_DEPENDENCIES = { "bastion-core": [], "bastion-ipc": ["bastion-core"] };
+const PATH_DEPENDENCIES = { "keitora-core": [], "keitora-ipc": ["keitora-core"] };
 
 /**
  * Returns what is wrong with a crate's manifest and place in the workspace, given

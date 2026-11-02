@@ -1,11 +1,11 @@
 <div align="center">
 
-# Bastion
+# Keitora
 
 **A Pomodoro timer that actually keeps you focused.**
 Block distracting websites and apps during focus sessions — and, in strict mode, make sure you can't turn it off until the timer ends.
 
-[![CI](https://github.com/CornelioDev/bastion/actions/workflows/ci.yml/badge.svg)](https://github.com/CornelioDev/bastion/actions/workflows/ci.yml)
+[![CI](https://github.com/CornelioDev/keitora/actions/workflows/ci.yml/badge.svg)](https://github.com/CornelioDev/keitora/actions/workflows/ci.yml)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 </div>
@@ -27,15 +27,15 @@ Planned: optional sync across devices, Android and iOS apps.
 
 A small Windows service holds the timer and enforces the blocklists; the desktop app and the browser extension only talk to it. That's why closing the app doesn't end a session. Read more in [docs/architecture.md](docs/architecture.md).
 
-> **Honest limitation:** a determined administrator can always defeat software on their own machine. Bastion aims to make bypassing more effort than waiting. For stronger guarantees, use a standard (non-admin) Windows account day to day. See the [threat model](docs/threat-model.md).
+> **Honest limitation:** a determined administrator can always defeat software on their own machine. Keitora aims to make bypassing more effort than waiting. For stronger guarantees, use a standard (non-admin) Windows account day to day. See the [threat model](docs/threat-model.md).
 
 ## Installation
 
-Not available yet. The first release (`v0.1.0`) will ship as a signed `.msi` on the [Releases](https://github.com/CornelioDev/bastion/releases) page.
+Not available yet. The first release (`v0.1.0`) will ship as a signed `.msi` on the [Releases](https://github.com/CornelioDev/keitora/releases) page.
 
 ## Contributing
 
-Contributions are welcome! Start with [CONTRIBUTING.md](CONTRIBUTING.md), look for issues labelled [`good first issue`](https://github.com/CornelioDev/bastion/labels/good%20first%20issue), and please follow our [Code of Conduct](CODE_OF_CONDUCT.md).
+Contributions are welcome! Start with [CONTRIBUTING.md](CONTRIBUTING.md), look for issues labelled [`good first issue`](https://github.com/CornelioDev/keitora/labels/good%20first%20issue), and please follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 Found a way to bypass strict mode? Open an issue. Found a **security vulnerability** (e.g. privilege escalation through the service)? Please report it privately — see [SECURITY.md](SECURITY.md).
 

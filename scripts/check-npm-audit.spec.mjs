@@ -24,7 +24,7 @@ const PASS = 0;
 const ADVISORIES = 1;
 const CANNOT_CHECK = 2;
 
-const scratch = mkdtempSync(join(tmpdir(), "bastion-audit-"));
+const scratch = mkdtempSync(join(tmpdir(), "keitora-audit-"));
 after(() => rmSync(scratch, { recursive: true, force: true }));
 
 writeFileSync(

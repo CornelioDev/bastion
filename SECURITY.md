@@ -1,6 +1,6 @@
 # Security Policy
 
-Bastion installs a Windows service that runs as `LocalSystem`. We take vulnerabilities in it seriously.
+Keitora installs a Windows service that runs as `LocalSystem`. We take vulnerabilities in it seriously.
 
 ## What counts as a security vulnerability
 
@@ -25,6 +25,6 @@ If a push is blocked, remove the secret from your commits instead of bypassing t
 
 ## Reporting a vulnerability
 
-Please **do not open a public issue.** Report privately through GitHub's [private vulnerability reporting](https://github.com/CornelioDev/bastion/security/advisories/new).
+Please **do not open a public issue.** Report privately through GitHub's [private vulnerability reporting](https://github.com/CornelioDev/keitora/security/advisories/new).
 
 Include the affected version, steps to reproduce, and impact. We aim to acknowledge within 3 business days and to agree on a disclosure timeline with you. We credit reporters in the advisory unless you prefer otherwise.

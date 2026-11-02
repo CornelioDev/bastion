@@ -213,7 +213,7 @@ const onSubmit = handleSubmit((values) => {
       </header>
 
       <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        <!-- Bastion's own tokens and fonts (src/styles/tokens.css,
+        <!-- Keitora's own tokens and fonts (src/styles/tokens.css,
              fonts.css), which no shadcn-vue component shows. -->
         <section
           aria-labelledby="gallery-tokens"

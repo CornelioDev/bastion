@@ -41,7 +41,7 @@ clippy:
 # script. It builds in target/unit-test-layout, so it doesn't rebuild anything else.
 # It comes after clippy, which shows compile errors in a more readable form.
 
-# Fail if bastion-core or bastion-ipc break the unit test convention
+# Fail if keitora-core or keitora-ipc break the unit test convention
 unit-test-layout:
     node scripts/check-unit-test-layout.mjs
 
@@ -115,7 +115,7 @@ check-acceptance-tests $ACCEPTANCE_BASE:
 # (cargo-llvm-cov, llvm-tools), compiles the crates a second time and slows the
 # frontend tests down. CI runs it as a job of its own.
 
-# Measure test coverage; fails if bastion-core or bastion-ipc is below 90 %
+# Measure test coverage; fails if keitora-core or keitora-ipc is below 90 %
 coverage: coverage-rust coverage-desktop coverage-extension
 
 # Each crate has to reach 90 % of its lines on its own, so a well-tested crate
@@ -130,10 +130,10 @@ coverage: coverage-rust coverage-desktop coverage-extension
 # A crate with no functions at all is an error ("no coverage data found"), not a
 # pass; see the test in each crate's lib.rs.
 
-# Fail if line coverage of bastion-core or bastion-ipc is below 90 %
+# Fail if line coverage of keitora-core or keitora-ipc is below 90 %
 coverage-rust:
-    cargo llvm-cov --locked --all-features -p bastion-core --fail-under-lines 90
-    cargo llvm-cov --locked --all-features -p bastion-ipc --fail-under-lines 90
+    cargo llvm-cov --locked --all-features -p keitora-core --fail-under-lines 90
+    cargo llvm-cov --locked --all-features -p keitora-ipc --fail-under-lines 90
 
 # Report the desktop app's test coverage in apps/desktop/coverage; no minimum
 coverage-desktop:

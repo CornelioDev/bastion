@@ -26,7 +26,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Bastion version
+      label: Keitora version
       placeholder: "0.1.0"
     validations:
       required: true
@@ -46,5 +46,5 @@ body:
     id: logs
     attributes:
       label: Logs
-      description: Relevant lines from `%ProgramData%\Bastion\logs`. Remove anything private.
+      description: Relevant lines from `%ProgramData%\Keitora\logs`. Remove anything private.
       render: text

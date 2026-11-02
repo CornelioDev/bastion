@@ -38,11 +38,11 @@ unmaintained = "all"
 # or insecure; `cargo update` usually moves to a replacement.
 yanked = "deny"
 # No advisories are ignored. If one has to be, add it here with the advisory
-# ID and a `reason` explaining why it does not affect Bastion.
+# ID and a `reason` explaining why it does not affect Keitora.
 ignore = []
 
 [licenses]
-# Bastion is distributed under MIT OR Apache-2.0, so every dependency must use
+# Keitora is distributed under MIT OR Apache-2.0, so every dependency must use
 # a permissive license that lets us ship it inside a binary under those terms.
 # Copyleft licenses (GPL, LGPL, AGPL, MPL, EUPL and others) are not listed and
 # therefore rejected. A crate with several licenses joined by OR passes if any
@@ -93,7 +93,7 @@ confidence-threshold = 0.93
 # Tauri (in the desktop app) needs them on our target, and they are licensed
 # MPL-2.0 only. MPL-2.0 is weak copyleft at the level of each file: it only
 # applies to the files of these crates, not to our code that links them, so
-# Bastion stays MIT OR Apache-2.0. What it asks of us: changes we make to
+# Keitora stays MIT OR Apache-2.0. What it asks of us: changes we make to
 # those files are published under MPL-2.0 (we use them unmodified from
 # crates.io), and whoever receives a binary that contains one of them is told
 # where to get its source. It is not added to `allow` so that any other crate
@@ -105,7 +105,7 @@ confidence-threshold = 0.93
 # The next four only run while compiling and are not part of the binaries we
 # ship: Tauri's code generator (`tauri-codegen`, through `tauri-utils` and
 # `dom_query`) uses them to read and rewrite the app's HTML, for example to
-# add the Content Security Policy. `cargo tree -p bastion-desktop
+# add the Content Security Policy. `cargo tree -p keitora-desktop
 # -e normal,no-proc-macro -i <crate>` prints nothing for them.
 
 # CSS parser.

@@ -39,7 +39,7 @@ function manifestWithProjectVersion(): string {
 /** Copies the files the browser reads directly into the build output. */
 function copyStaticFiles(): Plugin {
   return {
-    name: "bastion:copy-static-files",
+    name: "keitora:copy-static-files",
     buildStart() {
       this.addWatchFile(fileURLToPath(packageJson));
       this.addWatchFile(fileURLToPath(new URL("manifest.json", srcDir)));

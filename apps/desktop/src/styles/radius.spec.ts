@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 /**
- * main.css keeps Bastion's corner radius scale: each `--radius-*` step is a
+ * main.css keeps Keitora's corner radius scale: each `--radius-*` step is a
  * fixed offset from the base `--radius` (main.css, comment above the
  * scale). The shadcn-vue CLI may write its own scale, multiples of
  * `--radius`, over it.

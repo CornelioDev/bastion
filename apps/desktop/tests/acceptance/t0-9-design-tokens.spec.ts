@@ -268,7 +268,7 @@ beforeAll(() => {
   const vite = join(appRoot, "node_modules", "vite", "bin", "vite.js");
 
   // 1. The app as `pnpm build` ships it.
-  realOut = mkdtempSync(join(tmpdir(), "bastion-t0-9-build-"));
+  realOut = mkdtempSync(join(tmpdir(), "keitora-t0-9-build-"));
   expectSuccess(
     spawnSync(
       process.execPath,

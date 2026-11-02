@@ -1,6 +1,6 @@
 # Threat model
 
-Bastion has two very different kinds of "attack", and this project treats them differently.
+Keitora has two very different kinds of "attack", and this project treats them differently.
 
 | | Strict-mode bypass | Security vulnerability |
 |---|---|---|
@@ -22,9 +22,9 @@ Because the service runs as `SYSTEM` and accepts input from user-level processes
 - Every IPC message is size-limited and validated before use; parsing is fuzzed (`cargo-fuzz`) post-MVP.
 - Clients can never supply a path, command, or registry key that the service then executes or writes. Process blocking terminates matching processes; it never launches anything.
 - The pipe is created with an explicit DACL (interactive user + `SYSTEM`); remote clients are rejected (`PIPE_REJECT_REMOTE_CLIENTS`).
-- `%ProgramData%\Bastion` is writable only by `SYSTEM`, preventing DLL planting and database tampering.
+- `%ProgramData%\Keitora` is writable only by `SYSTEM`, preventing DLL planting and database tampering.
 - The service binary is installed under `Program Files` (admin-only write).
-- `unsafe` code is confined to `bastion-service/src/sys/` and reviewed with extra care.
+- `unsafe` code is confined to `keitora-service/src/sys/` and reviewed with extra care.
 - Release binaries are signed, and release artifacts carry build provenance attestations.
 
 ## Strict mode: bypass attempts and defenses

@@ -1,6 +1,6 @@
 # Architecture
 
-This document explains how Bastion is put together and why. Decisions are recorded as ADRs in [`docs/adr/`](adr/); security assumptions are in [threat-model.md](threat-model.md).
+This document explains how Keitora is put together and why. Decisions are recorded as ADRs in [`docs/adr/`](adr/); security assumptions are in [threat-model.md](threat-model.md).
 
 ## Overview
 
@@ -8,17 +8,17 @@ This document explains how Bastion is put together and why. Decisions are record
 ┌──────────────────────┐  Tauri commands  ┌──────────────────────┐
 │ Vue 3 UI             │◄────────────────►│ src-tauri (client)   │
 └──────────────────────┘                  └──────────┬───────────┘
-                                                     │ named pipe \\.\pipe\bastion
+                                                     │ named pipe \\.\pipe\keitora
 ┌──────────────────────┐ native messaging ┌──────────▼───────────┐
-│ MV3 extension        │◄────────────────►│ bastion-nmh.exe      │──┐
+│ MV3 extension        │◄────────────────►│ keitora-nmh.exe      │──┐
 │ (Chrome / Edge)      │  stdin / stdout  └──────────────────────┘  │ named pipe
 └──────────────────────┘                                            ▼
                                         ┌──────────────────────────────────────┐
-                                        │ bastion-service  (LocalSystem)        │
-                                        │  ├─ bastion-core: engine + rules      │
+                                        │ keitora-service  (LocalSystem)        │
+                                        │  ├─ keitora-core: engine + rules      │
                                         │  ├─ process monitor                   │
                                         │  ├─ browser policies (HKLM)           │
-                                        │  └─ SQLite  %ProgramData%\Bastion     │
+                                        │  └─ SQLite  %ProgramData%\Keitora     │
                                         └──────────────────────────────────────┘
 ```
 
@@ -28,16 +28,16 @@ This document explains how Bastion is put together and why. Decisions are record
 
 | Unit | Kind | Responsibility | May depend on |
 |---|---|---|---|
-| `bastion-core` | Rust lib | Domain model, pomodoro state machine, site/app rule matching, strict-mode policy | `serde`, `thiserror`, `chrono` |
-| `bastion-ipc` | Rust lib | Protocol types, versioning, line-delimited JSON framing | `bastion-core`, `serde` |
-| `bastion-service` | Rust bin | Windows service, persistence, process monitor, pipe server, browser policies | `bastion-core`, `bastion-ipc`, `windows`, `windows-service`, `rusqlite`, `tokio`, `tracing` |
-| `bastion-nmh` | Rust bin | Native messaging host: stdin/stdout ⇄ pipe | `bastion-ipc` |
-| `apps/desktop` | Tauri app | UI; `src-tauri` forwards commands to the pipe and events to the frontend | `bastion-ipc`, `tauri`, `tauri-specta` |
+| `keitora-core` | Rust lib | Domain model, pomodoro state machine, site/app rule matching, strict-mode policy | `serde`, `thiserror`, `chrono` |
+| `keitora-ipc` | Rust lib | Protocol types, versioning, line-delimited JSON framing | `keitora-core`, `serde` |
+| `keitora-service` | Rust bin | Windows service, persistence, process monitor, pipe server, browser policies | `keitora-core`, `keitora-ipc`, `windows`, `windows-service`, `rusqlite`, `tokio`, `tracing` |
+| `keitora-nmh` | Rust bin | Native messaging host: stdin/stdout ⇄ pipe | `keitora-ipc` |
+| `apps/desktop` | Tauri app | UI; `src-tauri` forwards commands to the pipe and events to the frontend | `keitora-ipc`, `tauri`, `tauri-specta` |
 | `extension` | TS | Applies site rules with `declarativeNetRequest`, shows the block page | — |
 
-Dependencies only point downwards in this table. `bastion-core` never depends on anything platform-specific, which keeps it testable and reusable on Android and iOS later (via `uniffi`).
+Dependencies only point downwards in this table. `keitora-core` never depends on anything platform-specific, which keeps it testable and reusable on Android and iOS later (via `uniffi`).
 
-## IPC protocol (`bastion-ipc`)
+## IPC protocol (`keitora-ipc`)
 
 - **Transport:** named pipe in message mode, one JSON object per line. The pipe's DACL allows the interactive user and `SYSTEM` only.
 - **Envelope:** `{ "v": 1, "id": "<uuid>", "kind": "request" | "response" | "event", "payload": { … } }`.
@@ -77,9 +77,9 @@ Sites are platform-independent. Apps are logical entities with one identifier pe
 
 ## Storage
 
-- SQLite at `%ProgramData%\Bastion\bastion.db`, migrations with `rusqlite_migration`.
+- SQLite at `%ProgramData%\Keitora\keitora.db`, migrations with `rusqlite_migration`.
 - Directory ACL: write for `SYSTEM` only, read for users.
-- Logs with `tracing` to `%ProgramData%\Bastion\logs`, rotated daily, no personal data beyond what the user configured.
+- Logs with `tracing` to `%ProgramData%\Keitora\logs`, rotated daily, no personal data beyond what the user configured.
 
 ## Open questions
 

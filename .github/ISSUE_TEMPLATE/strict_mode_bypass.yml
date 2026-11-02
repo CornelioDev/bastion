@@ -23,7 +23,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Bastion version
+      label: Keitora version
     validations:
       required: true
   - type: textarea

@@ -53,7 +53,7 @@ src/
 └── styles/tokens.css       # design tokens (below)
 ```
 
-IPC types are generated from the Rust `bastion-ipc` crate with [`specta`](https://github.com/specta-rs/specta) / `tauri-specta`, so the frontend never hand-writes message shapes.
+IPC types are generated from the Rust `keitora-ipc` crate with [`specta`](https://github.com/specta-rs/specta) / `tauri-specta`, so the frontend never hand-writes message shapes.
 
 ## Design tokens
 
