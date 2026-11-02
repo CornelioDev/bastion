@@ -17,15 +17,22 @@
 // able to ask the registry. With `--json` it prints a report only in the first case, and
 // nothing to standard output in the second.
 //
-// `--audit-level low` is written here so that `auditLevel` in a pnpm-workspace.yaml can't
-// raise it. On top of that the verdict comes from the report's counts, which pnpm doesn't
-// filter. Advisories of severity `info` don't fail, as they are below `low`. There is no
-// `--prod`: development dependencies count, as they do for cargo-deny.
+// `--audit-level low` is written here because it beats `auditLevel` in a
+// pnpm-workspace.yaml, which could otherwise raise the level. Advisories of severity `info`
+// don't fail, as they are below `low`. There is no `--prod`: development dependencies count,
+// as they do for cargo-deny.
 //
-// What this cannot see: a registry that wrongly replies `{}`. That is also the real reply
-// when there are no advisories, and pnpm turns it into a normal report, so nothing tells
-// the two apart. Packages go to the registry in a single request, and the audit trusts
-// its answer.
+// The verdict comes from the report's list of advisories, not from its counts. Each project
+// can ignore advisories by ID (`auditConfig.ignoreGhsas` in its pnpm-workspace.yaml, with a
+// reason and a review date next to each ID). pnpm takes those out of the list and out of its
+// exit code, but still counts them, and the same advisory on two packages is listed once and
+// counted twice. So the counts can exceed the list, but the list can't exceed the counts.
+//
+// What this cannot see, as pnpm's report doesn't show it:
+// - A registry that wrongly replies `{}`. That is also the real reply when there are no
+//   advisories, and pnpm turns it into a normal report, so nothing tells the two apart.
+// - An advisory whose severity is missing or isn't one pnpm knows (`banana`, `HIGH`). pnpm
+//   12.15.0 drops it from both the list and the counts, and exits with 0.
 
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -46,14 +53,14 @@ const FAILING_SEVERITIES = ["low", "moderate", "high", "critical"];
 // the justfile, and setting it here also covers running the script without `just`.
 process.env.NoDefaultCurrentDirectoryInExePath = "1";
 
-/** Formats text from the registry as one line, with nothing GitHub Actions would act on. */
+/** Formats untrusted text as one line, with nothing GitHub Actions would act on. */
 function show(text) {
-  return JSON.stringify(text).replaceAll("##[", "#\\u0023[");
+  return JSON.stringify(String(text)).replaceAll("##[", "#\\u0023[");
 }
 
 /**
- * Reads pnpm's report into the number of failing advisories and their list. Throws if it
- * isn't a report, or if it says no dependency was audited.
+ * Reads pnpm's report into how many advisories it counts and which ones it lists. Throws if
+ * it isn't a report, if it says no dependency was audited, or if its numbers can't be true.
  */
 function parseReport(stdout) {
   const report = JSON.parse(stdout);
@@ -61,17 +68,25 @@ function parseReport(stdout) {
   if (typeof report?.advisories !== "object" || report.advisories === null) {
     throw new Error("it has no list of advisories");
   }
-  if (!FAILING_SEVERITIES.every((severity) => Number.isInteger(counts?.[severity]))) {
-    throw new Error("it has no count per severity");
+  const validCount = (severity) => Number.isInteger(counts?.[severity]) && counts[severity] >= 0;
+  if (!FAILING_SEVERITIES.every(validCount)) {
+    throw new Error("it has no valid count per severity");
   }
   if (!(report.metadata.totalDependencies > 0)) {
     throw new Error("it says no dependency was audited");
   }
-  let count = 0;
+  let counted = 0;
   for (const severity of FAILING_SEVERITIES) {
-    count += counts[severity];
+    counted += counts[severity];
   }
-  return { count, advisories: Object.values(report.advisories) };
+  const advisories = Object.values(report.advisories).filter(
+    (advisory) => advisory?.severity !== "info",
+  );
+  // pnpm 12.15.0 doesn't produce this; it would mean the report changed its meaning.
+  if (advisories.length > counted) {
+    throw new Error(`it lists ${advisories.length} advisory(ies), but counts ${counted}`);
+  }
+  return { counted, advisories };
 }
 
 /** Audits a project and returns the exit code for it; throws if it cannot tell. */
@@ -89,26 +104,27 @@ function audit(directory) {
     throw new Error(`could not run pnpm: ${result.error.message}`);
   }
   if (result.status !== 0 && result.status !== 1) {
-    throw new Error(`pnpm exited with ${result.status}: ${show(result.stderr.trim())}`);
+    throw new Error(`pnpm exited with ${result.status}: ${result.stderr.trim()}`);
   }
   let report;
   try {
     report = parseReport(result.stdout);
   } catch (error) {
     const details = result.stderr.trim();
-    throw new Error(`no usable report (${error.message})${details ? `: ${show(details)}` : ""}`, {
+    throw new Error(`no usable report (${error.message})${details ? `: ${details}` : ""}`, {
       cause: error,
     });
   }
-  const { count, advisories } = report;
-  if (result.status === 1 && count === 0) {
-    throw new Error("pnpm exited with 1, but its report counts no advisories");
-  }
-  if (count === 0) {
-    console.log(`npm audit: ${directory}, no advisories.`);
+  const { counted, advisories } = report;
+  if (advisories.length === 0) {
+    if (result.status === 1) {
+      throw new Error("pnpm exited with 1, but its report lists no advisories");
+    }
+    const ignored = counted > 0 ? `; it counts ${counted}, ignored by ID` : "";
+    console.log(`npm audit: ${directory}, no advisories${ignored}.`);
     return 0;
   }
-  console.error(`${directory}: ${count} advisory(ies)`);
+  console.error(`${directory}: ${advisories.length} advisory(ies)`);
   for (const advisory of advisories) {
     console.error(
       `  ${show(advisory.severity)} ${show(advisory.module_name)} ${show(advisory.github_advisory_id ?? advisory.url)}: ${show(advisory.title)}`,
@@ -122,7 +138,8 @@ for (const directory of PACKAGES) {
   try {
     exitCode = Math.max(exitCode, audit(directory));
   } catch (error) {
-    console.error(`Cannot audit ${directory}: ${error.message}`);
+    // Sanitized here, so that it covers every error: they can quote pnpm's output.
+    console.error(`Cannot audit ${directory}: ${show(error.message)}`);
     exitCode = EXIT_CANNOT_CHECK;
   }
 }

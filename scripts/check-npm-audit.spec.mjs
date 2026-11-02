@@ -38,6 +38,7 @@ const args = process.argv.slice(2);
 appendFileSync(process.env.FAKE_PNPM_LOG, args.join(" ") + "\\n");
 const reply = JSON.parse(process.env.FAKE_PNPM_REPLIES)[args[1]];
 process.stdout.write(reply.stdout);
+process.stderr.write(reply.stderr ?? "");
 process.exitCode = reply.status;
 `,
 );
@@ -61,6 +62,26 @@ function report(moderate = 0) {
     },
   });
 }
+
+/** What the registry replies for advisories on minimatch, which both lockfiles have. */
+function repliedAdvisories(...advisories) {
+  return JSON.stringify({
+    minimatch: advisories.map(([id, severity], index) => ({
+      id: index + 1,
+      url: `https://github.com/advisories/${id}`,
+      title: "A title",
+      severity,
+      vulnerable_versions: ">=0.0.0",
+      cwe: [],
+      cvss: {},
+    })),
+  });
+}
+
+// The advisories accepted in the projects' pnpm-workspace.yaml. Tests send them from the
+// fake registry, so they don't depend on what the real one says about the lockfiles.
+const MINIMATCH_ADVISORY = "GHSA-g3hv-75wg-m249";
+const GLOB_ADVISORY = "GHSA-3g3m-2fjr-6pw4";
 
 const CLEAN = { status: 0, stdout: report() };
 const FOUND = { status: 1, stdout: report(1) };
@@ -142,15 +163,21 @@ test("exit 1: advisories in the second package", async () => {
   assert.match(result.stderr, /extension: 1 advisory/);
 });
 
-test("exit 1: the counts decide, if a setting filtered the list and the exit code", async () => {
-  const filtered = JSON.stringify({
+test("exit 0: an advisory that is counted but not listed was ignored by ID", async () => {
+  const ignored = JSON.stringify({
     advisories: {},
     metadata: {
       vulnerabilities: { info: 0, low: 0, moderate: 1, high: 0, critical: 0 },
       totalDependencies: 10,
     },
   });
-  const result = await runWithFake({ status: 0, stdout: filtered }, CLEAN);
+  const result = await runWithFake({ status: 0, stdout: ignored }, CLEAN);
+  assert.equal(result.status, PASS, result.stderr);
+  assert.match(result.stdout, /apps\/desktop, no advisories; it counts 1, ignored by ID/);
+});
+
+test("exit 1: an advisory in the list fails, whatever the exit status says", async () => {
+  const result = await runWithFake({ status: 0, stdout: report(1) }, CLEAN);
   assert.equal(result.status, ADVISORIES);
 });
 
@@ -196,7 +223,32 @@ test("exit 2: a report that isn't what's expected, with either exit status", asy
       totalDependencies: 0,
     },
   });
-  for (const stdout of ["", "not json", "null", "{}", "[]", noCounts, noList, nothingAudited]) {
+  const negative = JSON.stringify({
+    advisories: {},
+    metadata: {
+      vulnerabilities: { info: 0, low: -1, moderate: 0, high: 1, critical: 0 },
+      totalDependencies: 10,
+    },
+  });
+  const listedNotCounted = JSON.stringify({
+    advisories: { 1: { severity: "high", module_name: "a", title: "b" } },
+    metadata: {
+      vulnerabilities: { info: 0, low: 0, moderate: 0, high: 0, critical: 0 },
+      totalDependencies: 10,
+    },
+  });
+  for (const stdout of [
+    "",
+    "not json",
+    "null",
+    "{}",
+    "[]",
+    noCounts,
+    noList,
+    nothingAudited,
+    negative,
+    listedNotCounted,
+  ]) {
     for (const status of [0, 1]) {
       const result = await runWithFake({ status, stdout }, CLEAN);
       assert.equal(result.status, CANNOT_CHECK, `${status} ${stdout}`);
@@ -204,7 +256,7 @@ test("exit 2: a report that isn't what's expected, with either exit status", asy
   }
 });
 
-test("exit 2: pnpm says it failed, but its report counts nothing", async () => {
+test("exit 2: pnpm says it failed, but its report lists nothing", async () => {
   const result = await runWithFake({ status: 1, stdout: report() }, CLEAN);
   assert.equal(result.status, CANNOT_CHECK);
 });
@@ -240,21 +292,7 @@ for (const [name, status, body] of [
 }
 
 test("real pnpm, exit 1: the registry reports an advisory", async () => {
-  // Both lockfiles have minimatch.
-  const body = JSON.stringify({
-    minimatch: [
-      {
-        id: 1,
-        url: "https://github.com/advisories/GHSA-test",
-        title: "A title",
-        severity: "low",
-        vulnerable_versions: ">=0.0.0",
-        cwe: [],
-        cvss: {},
-      },
-    ],
-  });
-  const result = await runWithRegistry(200, body);
+  const result = await runWithRegistry(200, repliedAdvisories(["GHSA-test", "low"]));
   assert.equal(result.status, ADVISORIES, result.stderr);
   assert.match(result.stderr, /"low" "minimatch"/);
 });
@@ -262,4 +300,86 @@ test("real pnpm, exit 1: the registry reports an advisory", async () => {
 test("real pnpm, exit 0: `{}` is the registry's reply for no advisories", async () => {
   const result = await runWithRegistry(200, "{}");
   assert.equal(result.status, PASS, result.stderr);
+});
+
+test("real pnpm, exit 0: a known limit, an advisory of unknown severity is dropped", async () => {
+  const result = await runWithRegistry(200, repliedAdvisories(["GHSA-test", "banana"]));
+  assert.equal(result.status, PASS, result.stderr);
+});
+
+test("the ignored advisories are exactly the ones the maintainer accepted", () => {
+  const ignoredIn = (directory) => {
+    const file = new URL(`../${directory}/pnpm-workspace.yaml`, import.meta.url);
+    return [...readFileSync(file, "utf8").matchAll(/^\s*- (GHSA-\S+)/gm)].map((match) => match[1]);
+  };
+  assert.deepEqual(ignoredIn("apps/desktop"), [MINIMATCH_ADVISORY, GLOB_ADVISORY]);
+  assert.deepEqual(ignoredIn("extension"), [MINIMATCH_ADVISORY]);
+});
+
+test("real pnpm, exit 0: the advisory both projects ignore", async () => {
+  const result = await runWithRegistry(200, repliedAdvisories([MINIMATCH_ADVISORY, "high"]));
+  assert.equal(result.status, PASS, result.stderr);
+  assert.match(result.stdout, /apps\/desktop, no advisories; it counts 1, ignored by ID/);
+  assert.match(result.stdout, /extension, no advisories; it counts 1, ignored by ID/);
+});
+
+test("real pnpm, exit 1: any other advisory still fails next to an ignored one", async () => {
+  const result = await runWithRegistry(
+    200,
+    repliedAdvisories([MINIMATCH_ADVISORY, "high"], ["GHSA-other", "low"]),
+  );
+  assert.equal(result.status, ADVISORIES, result.stderr);
+  assert.match(result.stderr, /GHSA-other/);
+  assert.doesNotMatch(result.stderr, new RegExp(MINIMATCH_ADVISORY));
+});
+
+test("real pnpm, exit 1: an ID is only ignored in the project that lists it", async () => {
+  const result = await runWithRegistry(200, repliedAdvisories([GLOB_ADVISORY, "high"]));
+  assert.equal(result.status, ADVISORIES, result.stderr);
+  assert.match(result.stdout, /apps\/desktop, no advisories/);
+  assert.match(result.stderr, /extension: 1 advisory/);
+});
+
+const HOSTILE = "x\n::error::pwned\n##[error]pwned";
+
+/** Fails if GitHub Actions would read any line of this output as a workflow command. */
+function assertNoWorkflowCommand(output) {
+  assert.doesNotMatch(output, /##\[/);
+  for (const line of output.split(/\r?\n/)) {
+    assert.doesNotMatch(line, /^\s*::/, line);
+  }
+}
+
+test("a hostile advisory can't print a workflow command", async () => {
+  const stdout = JSON.stringify({
+    advisories: {
+      1: {
+        severity: HOSTILE,
+        module_name: HOSTILE,
+        github_advisory_id: HOSTILE,
+        title: HOSTILE,
+      },
+    },
+    metadata: {
+      vulnerabilities: { info: 0, low: 1, moderate: 0, high: 0, critical: 0 },
+      totalDependencies: 10,
+    },
+  });
+  const result = await runWithFake({ status: 1, stdout }, CLEAN);
+  assert.equal(result.status, ADVISORIES);
+  assert.match(result.stderr, /pwned/);
+  assertNoWorkflowCommand(result.stderr);
+});
+
+test("hostile output from pnpm can't print a workflow command", async () => {
+  for (const reply of [
+    { status: 1, stdout: HOSTILE },
+    { status: 1, stdout: "", stderr: HOSTILE },
+    { status: 3, stdout: "", stderr: HOSTILE },
+  ]) {
+    const result = await runWithFake(reply, CLEAN);
+    assert.equal(result.status, CANNOT_CHECK);
+    assert.match(result.stderr, /Cannot audit apps\/desktop/);
+    assertNoWorkflowCommand(result.stderr);
+  }
 });
