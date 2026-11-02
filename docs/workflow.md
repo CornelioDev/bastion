@@ -115,6 +115,8 @@ Until **T-2.3** (the IPC protocol) is approved, run one task at a time. After it
 | Desktop UI | F3 |
 | Extension | F4 |
 
+`main`'s ruleset requires a branch to be up to date before merging, so each merge makes the other open branches update and run CI again. Revisit that requirement when parallel loops start.
+
 Parallel loops must not change `bastion-ipc`; protocol changes go through a dedicated task on `main` that the other fronts then pull in. The maintainer still approves each task individually.
 
 ## Release gate

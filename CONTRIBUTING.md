@@ -211,7 +211,9 @@ gh pr merge <number> --squash --delete-branch --author-email <email>
 | `Acceptance tests` | [The rule below](#acceptance-tests-change-only-in-test-commits); pull requests only | `just check-acceptance-tests origin/main` |
 | `Analyze (rust)`, `Analyze (javascript-typescript)`, `Upload (…)` | [CodeQL](#security-checks) | Nothing to run |
 
-`npm dependencies` isn't part of `just check` because a new advisory can fail it with no change in the repository. Locally, `just npm-dependencies` stops if the licenses fail, without reaching the audit; CI shows both, and `just npm-licenses` and `just npm-audit` run each one. `just npm-audit` exits with 0 when there are no advisories of severity low or above, 1 when there are (each is listed), and 2 when it can't tell, such as with the registry down, which is never a pass. It can't tell a registry that wrongly replies `{}` from one with no advisories, because that is the normal reply.
+`npm dependencies` isn't part of `just check` because a new advisory can fail it with no change in the repository. Locally, `just npm-dependencies` stops if the licenses fail, without reaching the audit; CI shows both, and `just npm-licenses` and `just npm-audit` run each one. `just npm-audit` exits with 0 when there are no advisories of severity low or above, 1 when there are (each is listed), and 2 when it can't tell, such as with the registry down, which is never a pass. It can't tell a registry that wrongly replies `{}` from one with no advisories, because that is the normal reply, and pnpm silently drops an advisory whose severity is missing or unknown.
+
+These checks, with the `DCO` app's, are required to merge, and a branch must be up to date with `main`. So a new advisory can block every merge until a pull request updates the package or ignores the advisory by ID. To ignore one, add its GHSA ID to `auditConfig.ignoreGhsas` in the `pnpm-workspace.yaml` of the project it affects, with a reason and a review date next to it, and to the list in [`scripts/check-npm-audit.spec.mjs`](scripts/check-npm-audit.spec.mjs). No tool enforces the review date, so it needs someone to look at it.
 
 ### What CI proves
 
