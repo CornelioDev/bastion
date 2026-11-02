@@ -84,7 +84,7 @@ function cssFiles(): BuiltFile[] {
 }
 
 beforeAll(() => {
-  outDir = mkdtempSync(join(tmpdir(), "bastion-t0-8-build-"));
+  outDir = mkdtempSync(join(tmpdir(), "keitora-t0-8-build-"));
   const vite = join(appRoot, "node_modules", "vite", "bin", "vite.js");
   const result = spawnSync(
     process.execPath,
