@@ -207,11 +207,13 @@ gh pr merge <number> --squash --delete-branch --author-email <email>
 |---|---|---|
 | `just check` | Formatting, lints, unit test layout, tests, `cargo deny`, the frontend packages, and the tests of the scripts | `just check` |
 | `just coverage` | 90 % of the lines of `bastion-core` and `bastion-ipc`; a report for the frontend packages | `just coverage` |
-| `npm dependencies` | Licenses (policy in [`scripts/npm-license-policy.mjs`](scripts/npm-license-policy.mjs)) and `pnpm audit` of every npm dependency, development ones included. The license result relies on what each package declares in its `package.json`; nothing reads the license texts | `just npm-dependencies` |
+| `npm dependencies` | `pnpm audit` of every npm dependency, development ones included | `just npm-dependencies` |
 | `Acceptance tests` | [The rule below](#acceptance-tests-change-only-in-test-commits); pull requests only | `just check-acceptance-tests origin/main` |
 | `Analyze (rust)`, `Analyze (javascript-typescript)`, `Upload (…)` | [CodeQL](#security-checks) | Nothing to run |
 
-`npm dependencies` isn't part of `just check` because a new advisory can fail it with no change in the repository. Locally, `just npm-dependencies` stops if the licenses fail, without reaching the audit; CI shows both, and `just npm-licenses` and `just npm-audit` run each one. `just npm-audit` exits with 0 when there are no advisories of severity low or above, 1 when there are (each is listed), and 2 when it can't tell, such as with the registry down, which is never a pass. It can't tell a registry that wrongly replies `{}` from one with no advisories, because that is the normal reply, and pnpm silently drops an advisory whose severity is missing or unknown.
+`npm dependencies` isn't part of `just check` because a new advisory can fail it with no change in the repository. `just npm-dependencies` runs `just npm-audit`, which exits with 0 when there are no advisories of severity low or above, 1 when there are (each is listed), and 2 when it can't tell, such as with the registry down, which is never a pass. It can't tell a registry that wrongly replies `{}` from one with no advisories, because that is the normal reply, and pnpm silently drops an advisory whose severity is missing or unknown.
+
+**npm licenses are not checked by CI.** The npm license check is off as a gate during the MVP, by the maintainer's decision (2026-11-02), and must be analyzed before the first public release. Nothing stops a dependency with any license from coming in meanwhile. `just npm-licenses` runs it by hand, with the policy in [`scripts/npm-license-policy.mjs`](scripts/npm-license-policy.mjs), and it fails today on `elkjs` (EPL-2.0). Its result relies on what each package declares in its `package.json`; nothing reads the license texts. Rust licenses are still enforced, by `cargo deny` in `just check`.
 
 These checks, with the `DCO` app's, are required to merge, and a branch must be up to date with `main`. So a new advisory can block every merge until a pull request updates the package or ignores the advisory by ID. To ignore one, add its GHSA ID to `auditConfig.ignoreGhsas` in the `pnpm-workspace.yaml` of the project it affects, with a reason and a review date next to it, and to the list in [`scripts/check-npm-audit.spec.mjs`](scripts/check-npm-audit.spec.mjs). No tool enforces the review date, so it needs someone to look at it.
 
@@ -224,7 +226,7 @@ On a pull request, GitHub runs the workflows, the `justfile` and the scripts as 
 - A pull request from a fork needs the maintainer's approval before its workflows run, so read its `.github/` diff before approving.
 - With one maintainer no review is required, so `CODEOWNERS` blocks nothing.
 - `Acceptance tests` runs the script from the base branch, with no file of the pull request on disk, so editing the script or the `justfile` doesn't change its result. Editing `ci.yml` still does.
-- `scripts/check-unit-test-layout.mjs` and `scripts/unit-test-layout-rules.mjs` stay as the pull request has them: they catch accidents and ordinary code, not someone working around them. Running the base's copy wouldn't change that, as it would still build and read the pull request's code, in a job that the `justfile` and `ci.yml` of the pull request define. The same goes for `scripts/npm-license-policy.mjs`.
+- `scripts/check-unit-test-layout.mjs` and `scripts/unit-test-layout-rules.mjs` stay as the pull request has them: they catch accidents and ordinary code, not someone working around them. Running the base's copy wouldn't change that, as it would still build and read the pull request's code, in a job that the `justfile` and `ci.yml` of the pull request define.
 
 ### Acceptance tests change only in `test(` commits
 

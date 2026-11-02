@@ -7,6 +7,11 @@
 //
 //     just npm-licenses
 //
+// Not a gate right now: CI doesn't run it, by the maintainer's decision (2026-11-02) for
+// the MVP, and it must be analyzed before the first public release. It runs by hand, and
+// fails today on elkjs (EPL-2.0). Its spec uses a stand-in for pnpm, so `just check` still
+// tests the script without depending on the real dependencies passing.
+//
 // Exit codes:
 // - 0: both packages follow the policy.
 // - 1: at least one dependency doesn't; each one is listed.

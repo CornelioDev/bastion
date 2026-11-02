@@ -78,7 +78,7 @@ The workspace lints that keep panics out of the service also apply to test code,
 
 ## Commands
 
-`just check` runs the checks below, in order, stopping at the first failure, and is the main gate used by agents and CI. CI runs more than it does ([CONTRIBUTING.md](CONTRIBUTING.md#what-ci-runs)): `just coverage`, the npm license and advisory check, the acceptance test check and CodeQL. It runs `pnpm install --frozen-lockfile` in each frontend package first, so it also works on a fresh clone whose path is short enough ([CONTRIBUTING.md](CONTRIBUTING.md#development-setup) gives the limit), and it runs the `cargo` checks with `--locked`.
+`just check` runs the checks below, in order, stopping at the first failure, and is the main gate used by agents and CI. CI runs more than it does ([CONTRIBUTING.md](CONTRIBUTING.md#what-ci-runs)): `just coverage`, the npm advisory check, the acceptance test check and CodeQL. It runs `pnpm install --frozen-lockfile` in each frontend package first, so it also works on a fresh clone whose path is short enough ([CONTRIBUTING.md](CONTRIBUTING.md#development-setup) gives the limit), and it runs the `cargo` checks with `--locked`.
 
 ```bash
 # Rust
@@ -106,7 +106,9 @@ cargo run -p bastion-service -- --console
 
 `just check-acceptance-tests <base>` is separate too, because it needs a base: it fails if a commit in `<base>..HEAD` changes acceptance tests (`**/tests/acceptance*`) without a subject starting with `test(`, or changes other files along with them, and it can't pass on a shallow clone. CI runs it on pull requests, from the base's copy of the script. It catches accidental changes; a commit prefix proves nothing about who wrote a commit ([CONTRIBUTING.md](CONTRIBUTING.md#acceptance-tests-change-only-in-test-commits)).
 
-`just npm-dependencies` is separate too, because a new advisory can fail it with no change in the repository: it fails if an npm dependency of the desktop app or the extension has a license that `scripts/npm-license-policy.mjs` rejects, or a known advisory.
+`just npm-dependencies` is separate too, because a new advisory can fail it with no change in the repository: it fails if an npm dependency of the desktop app or the extension has a known advisory.
+
+`just npm-licenses` is not a gate: the npm license check is off as a gate during the MVP, by the maintainer's decision (2026-11-02), and must be analyzed before the first public release. It runs by hand and fails today on `elkjs`, so don't treat that failure as a blocker. `cargo deny` still enforces Rust licenses in `just check`.
 
 CodeQL runs only on GitHub ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)). Pin any action to a full commit hash with its version in a comment.
 
