@@ -36,11 +36,12 @@ writeFileSync(
 writeFileSync(
   join(scratch, "fake-pnpm.mjs"),
   "process.stdout.write(process.env.FAKE_PNPM_OUTPUT);\n" +
+    "process.stderr.write(process.env.FAKE_PNPM_STDERR);\n" +
     "process.exitCode = Number(process.env.FAKE_PNPM_STATUS);\n",
 );
 
 /** Runs the script with pnpm printing `output` and exiting with `status`. */
-function runScript(output, status = 0) {
+function runScript(output, status = 0, stderr = "") {
   return spawnSync(process.execPath, [SCRIPT], {
     encoding: "utf8",
     env: {
@@ -48,6 +49,7 @@ function runScript(output, status = 0) {
       PATH: `${scratch}${delimiter}${process.env.PATH}`,
       FAKE_PNPM_OUTPUT: output,
       FAKE_PNPM_STATUS: String(status),
+      FAKE_PNPM_STDERR: stderr,
     },
   });
 }
@@ -186,12 +188,37 @@ test("the script passes when every license is accepted", () => {
 test("the script lists a license that isn't accepted", () => {
   const result = runScript(reportOf("EPL-2.0", "elkjs", "0.10.2"));
   assert.equal(result.status, VIOLATION);
-  assert.match(result.stderr, /apps\/desktop: elkjs@0\.10\.2 has the license "EPL-2\.0"/);
-  assert.match(result.stderr, /extension: elkjs@0\.10\.2/);
+  assert.match(result.stderr, /apps\/desktop: "elkjs@0\.10\.2" has the license "EPL-2\.0"/);
+  assert.match(result.stderr, /extension: "elkjs@0\.10\.2"/);
 });
 
 test("the script can't pass if pnpm fails or its report is empty", () => {
   assert.equal(runScript(reportOf("MIT", "a"), 1).status, CANNOT_CHECK);
   assert.equal(runScript("{}").status, CANNOT_CHECK);
   assert.equal(runScript("not json").status, CANNOT_CHECK);
+});
+
+const HOSTILE = "x\n::error::pwned\n##[error]pwned";
+
+/** Fails if GitHub Actions would read any line of this output as a workflow command. */
+function assertNoWorkflowCommand(output) {
+  assert.doesNotMatch(output, /##\[/);
+  for (const line of output.split(/\r?\n/)) {
+    assert.doesNotMatch(line, /^\s*::/, line);
+  }
+}
+
+test("hostile text from a report can't print a workflow command", () => {
+  const report = JSON.stringify({ [HOSTILE]: [{ name: HOSTILE, versions: [HOSTILE] }] });
+  const result = runScript(report);
+  assert.equal(result.status, VIOLATION);
+  assert.match(result.stderr, /pwned/);
+  assertNoWorkflowCommand(result.stderr);
+});
+
+test("hostile output from pnpm can't print a workflow command", () => {
+  for (const failing of [runScript(HOSTILE), runScript("{}", 1, HOSTILE)]) {
+    assert.equal(failing.status, CANNOT_CHECK);
+    assertNoWorkflowCommand(failing.stderr);
+  }
 });

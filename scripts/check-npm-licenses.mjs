@@ -26,6 +26,11 @@ const EXIT_VIOLATION = 1;
 /** Exit code for a check that could not run. */
 const EXIT_CANNOT_CHECK = 2;
 
+/** Formats untrusted text as one line, with nothing GitHub Actions would act on. */
+function show(text) {
+  return JSON.stringify(String(text)).replaceAll("##[", "#\\u0023[");
+}
+
 // cmd.exe looks for a command in the current directory before PATH, so a `pnpm.cmd` in
 // the repository would run instead of pnpm. This variable makes it use PATH only, as in
 // the justfile, and setting it here also covers running the script without `just`.
@@ -65,7 +70,7 @@ function check() {
     const violations = findLicenseViolations(packages);
     for (const { name, version, license } of violations) {
       exitCode = EXIT_VIOLATION;
-      console.error(`${directory}: ${name}@${version} has the license ${JSON.stringify(license)}`);
+      console.error(`${directory}: ${show(`${name}@${version}`)} has the license ${show(license)}`);
     }
     if (violations.length === 0) {
       console.log(`npm licenses: ${directory}, ${packages.length} package(s) checked, all fine.`);
@@ -82,6 +87,7 @@ function check() {
 try {
   process.exitCode = check();
 } catch (error) {
-  console.error(`Cannot check npm licenses: ${error.message}`);
+  // Sanitized here, so that it covers every error: they can quote pnpm's output.
+  console.error(`Cannot check npm licenses: ${show(error.message)}`);
   process.exitCode = EXIT_CANNOT_CHECK;
 }
