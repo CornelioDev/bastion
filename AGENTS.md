@@ -110,6 +110,6 @@ cargo run -p bastion-service -- --console
 
 `just npm-licenses` is not a gate: the npm license check is off as a gate during the MVP, by the maintainer's decision (2026-11-02), and must be analyzed before the first public release. It runs by hand and fails today on `elkjs`, so don't treat that failure as a blocker. `cargo deny` still enforces Rust licenses in `just check`.
 
-CodeQL runs only on GitHub ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)). Pin any action to a full commit hash with its version in a comment.
+CodeQL runs only on GitHub ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)). Pin any action to a full commit hash with its version in a comment; GitHub rejects any other `uses:`, and a new third-party action must first be allowed in the repository's settings ([CONTRIBUTING.md](CONTRIBUTING.md#security-checks)).
 
 `lefthook` runs format and lint checks on commit. CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on `windows-latest`, on pull requests to `main` and pushes to it. It uses a pull request's own copy of the workflows, the `justfile` and the scripts, so changes to those are for human review ([CONTRIBUTING.md](CONTRIBUTING.md#what-ci-proves)).

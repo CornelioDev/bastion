@@ -255,6 +255,7 @@ This catches accidental changes, mostly by agents. It doesn't prove who wrote a 
 
 - **CodeQL** ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)) analyzes the Rust and TypeScript/JavaScript code on every pull request, on every push to `main` and weekly. Results appear under the repository's Security tab and on the pull request. A pull request from a fork or from Dependabot may have a token that can't upload them; its check still passes, and its results stay in the run's `sarif-*` artifacts until the code is analyzed again on `main`. The job that runs CodeQL, and with it the build scripts and proc macros of a pull request, has no permission to write results; a second job with no checkout uploads them. The required CodeQL checks prove that the analysis ran, not that its results are clean, so alerts are reviewed by hand. It only runs on GitHub, so there is nothing to run locally. The repository's "default setup" for code scanning must stay off, because it conflicts with this workflow.
 - **Secret scanning with push protection** is on for the repository; see [SECURITY.md](SECURITY.md#secret-scanning).
+- **GitHub Actions are restricted** in the repository's settings. A `uses:` that isn't pinned to a full commit hash fails. Only GitHub's own actions and a list of third-party ones can run (`taiki-e/install-action`, `pnpm/action-setup`, `googleapis/release-please-action`), so a new third-party action must be added to that list first.
 
 ## Releases
 
@@ -262,7 +263,7 @@ This catches accidental changes, mostly by agents. It doesn't prove who wrote a 
 
 1. On every push to `main`, it reads the commits since the last release.
 2. If they include something to list in the changelog, it opens or updates one pull request, `chore: release <version>`, from the branch `release-please--branches--main`. It holds the new version and the changelog entry, and runs the same required checks as any other.
-3. **That pull request stays open until the maintainer decides to release, and only the maintainer merges it.** This is a rule we follow, not something enforced: the ruleset requires no approval, and the App's token (see [below](#what-the-repository-needs)) can merge it and can create or move tags. Merging it tags the commit `v<version>` and publishes a GitHub Release, marked as a pre-release while the version is a beta. No binaries yet: T-6.5 adds them.
+3. **That pull request stays open until the maintainer decides to release, and only the maintainer merges it.** This is a rule we follow, not something enforced: the ruleset requires no approval, and the App's token (see [below](#what-the-repository-needs)) can merge it, create tags, even on a commit outside `main`, and publish or edit releases. The maintainer accepted the merge risk until T-6.5. The `release tags` ruleset, with no bypass, lets tags matching `v*` be created, but nobody can move or delete them. Merging it tags the commit `v<version>` and publishes a GitHub Release, marked as a pre-release while the version is a beta. No binaries yet: T-6.5 adds them.
 
 Until F6 is done, leave it open. The MVP's version is held back only by not merging it; `0.1.0-beta.1` doesn't change however many commits arrive before then.
 
