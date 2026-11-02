@@ -1,0 +1,65 @@
+# Opens and updates the release pull request, and publishes a GitHub Release when
+# it is merged (T-0.14). CONTRIBUTING.md, "Releases", has the whole flow and the
+# setup this needs. What gets released is in release-please-config.json.
+#
+# This workflow publishes no binaries: T-6.5 adds them.
+#
+# Why a GitHub App and not `GITHUB_TOKEN`: pull requests opened with `GITHUB_TOKEN`
+# trigger no workflows, so a release pull request would wait forever for the checks
+# that the `main` ruleset requires. The App's token doesn't bypass the ruleset: a
+# person still merges the pull request, after the same checks as any other.
+#
+# The private key is only reachable from this job:
+# - It lives in the `release-please` environment, whose deployment rule allows only
+#   `main`, so a workflow edited on another branch can't read it.
+# - The trigger is `push` to `main`, never `pull_request` or `pull_request_target`.
+# - There is no checkout and no `run` step, so no code from the repository runs here.
+#   release-please reads and writes the repository through the API.
+#
+# Without the variable or the secret, create-github-app-token fails and the run is
+# red, with nothing published. No check requires this workflow, so a failure here
+# blocks no merge; re-run the failed job, or let the next merge try again.
+#
+# Every action is pinned to a full commit hash, with its version in a comment;
+# Dependabot updates both (.github/dependabot.yml).
+
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+# Two merges close together must not update the release pull request at once. A run
+# that is waiting reads `main` as it is when it starts, so it covers the merges of
+# any run that GitHub replaces while waiting.
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    name: Release Please
+    # Not Windows, like the rest of CI, because nothing here is built or tested.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: release-please
+    # The job's own `GITHUB_TOKEN` can do nothing; the App's token does the work.
+    permissions: {}
+    steps:
+      # The token lasts an hour at most, and the action revokes it when the job
+      # ends. These two permissions narrow it down, in case the App ever has more.
+      - name: Get a token from the GitHub App
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Update the release pull request, or publish its release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
