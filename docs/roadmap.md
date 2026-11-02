@@ -55,7 +55,7 @@ MVP phases: **F0 → F6**. Later: **F7 → F9**.
   - Depends on: T-0.16, T-0.17, T-0.18
 - [x] **T-0.14** Release automation with `release-please` (workspace versioning, changelog from Conventional Commits, GitHub Releases).
   - Depends on: T-0.13
-- [ ] **T-0.15** Verify the product name Keitora is free (crates.io, npm, Chrome Web Store, trademarks) before the first public release, then rename the project from Bastion to Keitora: the GitHub repository, crates and binaries (`bastion-*`), the pipe `\\.\pipe\bastion`, `%ProgramData%\Bastion`, the extension, the installer and the docs. The desktop app (T-0.6) and the extension's visible name (T-0.11) are already Keitora. The images in `docs/assets/mockups/` still show Bastion: decide whether to re-export them from the private canvas or keep the exception in `docs/ui-stack.md`. Renaming the pipe and the `ProgramData` folder must keep their DACL, `PIPE_REJECT_REMOTE_CLIENTS` and SYSTEM-only ACL.
+- [~] **T-0.15** Verify the product name Keitora is free (crates.io, npm, Chrome Web Store, trademarks) before the first public release, then rename the project from Bastion to Keitora: the GitHub repository, crates and binaries (`bastion-*`), the pipe `\\.\pipe\bastion`, `%ProgramData%\Bastion`, the extension, the installer and the docs. The desktop app (T-0.6) and the extension's visible name (T-0.11) are already Keitora. The images in `docs/assets/mockups/` still show Bastion: decide whether to re-export them from the private canvas or keep the exception in `docs/ui-stack.md`. Renaming the pipe and the `ProgramData` folder must keep their DACL, `PIPE_REJECT_REMOTE_CLIENTS` and SYSTEM-only ACL.
 
 ### Quality and security gates (required by `docs/workflow.md`)
 
