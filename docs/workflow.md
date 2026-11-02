@@ -28,7 +28,7 @@ The maintainer starts a task with: **"Run task T-x.y"** (or several, see *Runnin
 5. **Independent review.** Invoke `qa-engineer` in `validate` mode and `security-reviewer` in parallel. If either returns FAIL, send the findings to `developer` (step 3).
 6. **Retry limit.** After **3** round-trips from step 4 or 5 back to step 3, stop and escalate to the maintainer with the reports so far.
 7. **Report.** Compile the maintainer report (template below) and **stop**. Do not merge.
-8. **On approval** ("aprobado" / "approved"): tick the task `[x]`, update **Current status**, add a `CHANGELOG.md` entry if user-visible, add ADRs the developer flagged, and push the branch. Open a pull request to `main` titled with the squash commit's subject (`feat(core): add pomodoro state machine (T-1.3)`; GitHub appends ` (#N)`), wait for the required checks, squash-merge it on GitHub, and delete the branch ([CONTRIBUTING.md](../CONTRIBUTING.md#pull-requests) has the command, and how the subject and the DCO sign-off carry over). `main` takes no direct push: its ruleset's `pull_request` rule requires a pull request, with an empty bypass list.
+8. **On approval** ("aprobado" / "approved"): tick the task `[x]`, update **Current status**, add ADRs the developer flagged, and push the branch. `CHANGELOG.md` isn't edited by hand: `release-please` generates it from the squash commit, so the type in its subject decides whether the change is listed (`feat`, `fix`, `perf`, `revert`) or not ([CONTRIBUTING.md](../CONTRIBUTING.md#releases)). Open a pull request to `main` titled with the squash commit's subject (`feat(core): add pomodoro state machine (T-1.3)`; GitHub appends ` (#N)`), wait for the required checks, squash-merge it on GitHub, and delete the branch ([CONTRIBUTING.md](../CONTRIBUTING.md#pull-requests) has the command, and how the subject and the DCO sign-off carry over). `main` takes no direct push: its ruleset's `pull_request` rule requires a pull request, with an empty bypass list.
    **On rejection:** take the maintainer's feedback to `developer` (step 3) and continue.
 
 Reports to the maintainer are written in **Spanish**. Everything committed to the repository stays in English.
@@ -122,3 +122,5 @@ Parallel loops must not change `bastion-ipc`; protocol changes go through a dedi
 ## Release gate
 
 A release may be published as stable only after a **human** security review of `bastion-service`, `bastion-ipc`, `bastion-nmh` and the installer. Until then, releases are tagged as pre-releases (`v0.x.y-beta.n`) and the README says so.
+
+`release-please` is configured for this: it only proposes `-beta.n` versions and marks each GitHub Release as a pre-release. It keeps a release pull request open, and a release only happens when the maintainer merges it ([CONTRIBUTING.md](../CONTRIBUTING.md#releases)). Orchestrators and agents never merge it as part of a task.

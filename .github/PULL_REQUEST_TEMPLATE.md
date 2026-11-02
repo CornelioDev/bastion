@@ -15,6 +15,6 @@ Roadmap task: <!-- e.g. T-1.3, or "none" -->
 - [ ] Tests added or updated, and all checks pass locally
 - [ ] New source files have an SPDX license header
 - [ ] User-facing strings go through i18n (`en` and `es` updated)
-- [ ] Docs, `docs/roadmap.md` and `CHANGELOG.md` updated where relevant
+- [ ] Docs and `docs/roadmap.md` updated where relevant (`CHANGELOG.md` is generated: don't edit it)
 - [ ] An ADR was added if this changes the architecture
 - [ ] Touches the service, IPC or installer? Reviewed against `docs/threat-model.md`

@@ -15,7 +15,7 @@ In short:
 1. Find the active phase and next task in [docs/roadmap.md](docs/roadmap.md) → **Current status** (respect `Depends on:`).
 2. Never modify acceptance tests (`**/tests/acceptance*`) unless you are the QA engineer.
 3. Nothing is done until `just check` passes, QA and security both return PASS, and the maintainer approves.
-4. On approval: tick the task, update **Current status**, add a `CHANGELOG.md` entry if user-visible, add an ADR in `docs/adr/` for architectural decisions, then open a GitHub pull request titled with a Conventional Commit referencing the task (`feat(core): add pomodoro state machine (T-1.3)`) and squash-merge it once the required checks pass. The squash keeps the sign-off (`-s`) of the branch's commits. Never push to `main` directly; its ruleset's `pull_request` rule requires a pull request ([CONTRIBUTING.md](CONTRIBUTING.md#pull-requests)).
+4. On approval: tick the task, update **Current status**, add an ADR in `docs/adr/` for architectural decisions, then open a GitHub pull request titled with a Conventional Commit referencing the task (`feat(core): add pomodoro state machine (T-1.3)`) and squash-merge it once the required checks pass. The squash keeps the sign-off (`-s`) of the branch's commits. Never push to `main` directly; its ruleset's `pull_request` rule requires a pull request ([CONTRIBUTING.md](CONTRIBUTING.md#pull-requests)). Don't edit `CHANGELOG.md` or a version number, and don't merge the release pull request: `release-please` writes them from the commit types, and only the maintainer releases ([CONTRIBUTING.md](CONTRIBUTING.md#releases)).
 5. If blocked, mark the task `[~]`, write the reason in **Current status**, and stop.
 
 Task states: `[ ]` todo · `[~]` in progress / blocked · `[x]` done.
@@ -52,7 +52,7 @@ bastion/
 |---|---|
 | Language | English for code, comments, commits, docs. UI is localized. |
 | Commits | [Conventional Commits](https://www.conventionalcommits.org) + DCO sign-off |
-| Versioning | [SemVer](https://semver.org); changelog per [Keep a Changelog](https://keepachangelog.com) |
+| Versioning | [SemVer](https://semver.org), one version for the whole project; `release-please` sets it and generates the changelog |
 | Rust | [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/); `rustfmt`; `clippy` with workspace lints; `thiserror` in libraries, `anyhow` only in binaries; no `unwrap()`/`expect()` or other panicking operations outside tests (enforced by the workspace lints in `Cargo.toml` and `clippy.toml`); public items documented (`missing_docs` warns) |
 | Vue | [Vue style guide](https://vuejs.org/style-guide/) priority A–B; Composition API with `<script setup lang="ts">`; `PascalCase` single-file components; composables named `useXxx` in `src/composables/` |
 | TypeScript | `strict: true`, no `any` without a justifying comment |
