@@ -230,7 +230,7 @@ On a pull request, GitHub runs the workflows, the `justfile` and the scripts as 
 - A pull request from a fork needs the maintainer's approval before its workflows run, so read its `.github/` diff before approving.
 - With one maintainer no review is required, so `CODEOWNERS` blocks nothing.
 - `Acceptance tests` runs the script from the base branch, with no file of the pull request on disk, so editing the script or the `justfile` doesn't change its result. Editing `ci.yml` still does.
-- Text can steer a release, with no file changed ([Releases](#what-decides-the-version)). In a pull request from someone else, look in its commit messages for `Release-As:`, `BEGIN_NESTED_COMMIT` and a paragraph with no bullet that starts with a type (`fix: …`), and in its description for `BEGIN_COMMIT_OVERRIDE`, even inside an HTML comment. Dependabot's pull requests count, as their messages carry third-party text such as release notes. release-please reads a merged pull request's description again on every run until the next release, and its author may still be able to edit it; we haven't tested that. The checks when merging the release pull request remain the control.
+- Text can steer a release, with no file changed ([Releases](#what-decides-the-version)). Read the commit messages and the description of a pull request from someone else for that text, even inside an HTML comment. Dependabot's count, as they carry third-party text such as release notes. Reviewing descriptions is what catches `BEGIN_COMMIT_OVERRIDE`; the release pull request doesn't show what it removes.
 - `scripts/check-unit-test-layout.mjs` and `scripts/unit-test-layout-rules.mjs` stay as the pull request has them: they catch accidents and ordinary code, not someone working around them. Running the base's copy wouldn't change that, as it would still build and read the pull request's code, in a job that the `justfile` and `ci.yml` of the pull request define.
 
 ### Acceptance tests change only in `test(` commits
@@ -268,7 +268,7 @@ Until F6 is done, leave it open. The MVP's version is held back only by not merg
 
 ### What decides the version
 
-The type in the pull request's title, which becomes the squash commit's subject:
+Normally, the type in the pull request's title, which becomes the squash commit's subject:
 
 | Type | In the changelog | Version |
 |---|---|---|
@@ -278,23 +278,15 @@ The type in the pull request's title, which becomes the squash commit's subject:
 | `feat!`, `fix!` or a `BREAKING CHANGE` footer | Breaking changes | Next beta |
 | `docs`, `chore`, `ci`, `build`, `test`, `refactor` | Not listed | None, and no release on their own |
 
-So the title decides whether users hear about a change. In a squash of several commits, GitHub writes each one into the body as a bullet (`* fix: …`), and release-please ignores those. A `feat` or `fix` commit in a pull request whose title has another type reaches neither the changelog nor the version: if users should hear about it, the title has to say so.
+So if users should hear about a change, the title has to say so: a `feat` or `fix` commit under a title of another type is normally not listed. The first release is `0.1.0-beta.1` (`initial-version`), and it also lists the earlier commits on `main` with a `feat` or `fix` subject.
 
-The first release is `0.1.0-beta.1` (`initial-version`), and it also lists the earlier commits on `main` with a `feat` or `fix` subject. So `* fix: sanitize what the npm license check prints (T-0.13)`, a bullet in the body of `f0a1c59`, which has a `ci:` subject, isn't in it. A Dependabot title (`build(deps)`, `ci(deps)`) doesn't cause a release.
-
-Other text in commit messages and pull request descriptions gets past that table, so it is for review ([what CI proves](#what-ci-proves)):
-
-- **A `Release-As: <version>` footer** sets the next version, overriding the beta scheme. It can produce a version with no `-beta.n`, which from `1.0.0` up isn't marked as a pre-release either. A footer only counts at the end of the message, so in a squash only the branch's last commit can set it; in an earlier commit it is ignored.
-- **A paragraph in a commit's body that starts with a type**, with no bullet (`fix: …`), counts as a commit of its own, even under a `ci:` subject: it is listed, and it moves the version to the next beta.
-- **`BEGIN_NESTED_COMMIT` in a commit message, and `BEGIN_COMMIT_OVERRIDE` in a pull request's description.** What they enclose is read as commits, so they change what is listed and, with a `Release-As:` inside, the version.
-
-The checks of the title and the changelog [when merging](#merging-the-release-pull-request) catch all of these.
+Text inside commit messages and pull request descriptions can also change the version or the list: `Release-As:`, `BREAKING CHANGE`, `BEGIN_NESTED_COMMIT`, `BEGIN_COMMIT_OVERRIDE`, or a paragraph starting with a type. `Release-As:` can even produce a version with no `-beta.n`. The exact rules are release-please's, so don't assume such text is harmless wherever it sits ([what CI proves](#what-ci-proves)).
 
 To go from a beta to a stable version, in this order:
 
 1. Publish the beta, by merging its release pull request.
 2. Pass the human security review (T-6.8, [release gate](docs/workflow.md#release-gate)).
-3. In a pull request, set `"prerelease": false` in the config. With a `feat`, `fix`, `perf` or `revert` commit since the beta, the release pull request proposes the same version without `-beta.n`. With none, no release pull request opens, so the last commit of this pull request's branch ends with the footer `Release-As: 0.1.0`, with the version to release; one commit is simplest.
+3. In a pull request, set `"prerelease": false` in the config. With a `feat`, `fix`, `perf` or `revert` commit since the beta, the release pull request proposes the same version without `-beta.n`. With none, no release pull request opens, so add the footer `Release-As: 0.1.0`, with the version to release, on a single-commit branch, or read the squash message first with `viewerMergeBodyText` ([Pull requests](#pull-requests)). After merging, check that the release pull request proposes that version.
 
 Don't change that setting before a beta is published: it would still propose `0.1.0-beta.1`, and mark that beta as not a pre-release.
 
@@ -317,8 +309,8 @@ If that hits a conflict, delete the branch `release-please--branches--main` and 
 
 Before merging:
 
-1. Confirm that the version in the title has `-beta.`, while the [release gate](docs/workflow.md#release-gate) holds.
-2. Read the changelog entry in full. Its text comes from commit messages, and only `<` and `>` are escaped, so a subject can add links or mentions, and they reach `CHANGELOG.md` and the GitHub Release as written. For the same reason, T-6.5 must never interpolate release or tag data into a `run:` step of a workflow.
+1. Confirm that the version in the title has `-beta.`, while the [release gate](docs/workflow.md#release-gate) holds, and that it is the next one you expect: a jump can keep `-beta.`.
+2. Read the changelog entry in full, and compare it with `git log` since the last release: reading it shows what was added, not what was removed. Changelog and release text isn't sanitized, so treat it as untrusted when reading and when using it. T-6.5 must never interpolate release or tag data into a `run:` step of a workflow.
 3. Check who its commits are attributed to, with `gh pr view <number> --json commits`: one commit, from the App's bot. The `DCO` app skips commits [attributed to a bot](https://github.com/dcoapp/app/blob/main/lib/dco.js), and that attribution comes from the commit's author email, so a passing check doesn't prove who wrote it.
 
 Then merge as usual, with one difference. The release pull request passes the `DCO` check with no sign-off, so there is none for GitHub to copy into the squash commit. Add yours when merging, because every commit on `main` has one:
