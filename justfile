@@ -72,15 +72,18 @@ extension:
 test-scripts:
     node --test scripts/check-acceptance-tests.spec.mjs scripts/check-npm-audit.spec.mjs scripts/check-npm-licenses.spec.mjs scripts/check-unit-test-layout.spec.mjs
 
-# Not part of `check`: a new advisory can fail these with no change in the repository,
-# and CI runs them as a job of its own, which shows both results.
+# Not part of `check`: a new advisory can fail it with no change in the repository,
+# and CI runs it as a job of its own. Licenses aren't part of it: see `npm-licenses`.
 
-# Check npm dependencies: licenses, then advisories; stops if the licenses fail
-npm-dependencies: npm-licenses npm-audit
+# What CI's `npm dependencies` job runs: the advisories of the npm dependencies
+npm-dependencies: npm-audit
 
-# `pnpm licenses` reads what is installed, so this installs first.
+# Not a gate: nothing runs this but a person. The npm license check is off as a gate
+# during the MVP, by the maintainer's decision (2026-11-02), and must be analyzed before
+# the first public release. Today it fails on elkjs (EPL-2.0). `pnpm licenses` reads
+# what is installed, so this installs first.
 
-# Fail if an npm dependency has a license that scripts/npm-license-policy.mjs rejects
+# Report npm licenses that scripts/npm-license-policy.mjs rejects; not a gate, fails on elkjs
 npm-licenses:
     pnpm --dir apps/desktop install --frozen-lockfile
     pnpm --dir extension install --frozen-lockfile

@@ -112,7 +112,10 @@ jobs:
         run: just coverage
 
   # Its own job, and not part of `just check`: a new advisory can fail it with no
-  # change in the repository, and the result depends on the npm registry.
+  # change in the repository, and the result depends on the npm registry. It only
+  # audits: the npm license check (`just npm-licenses`) is off as a gate during the
+  # MVP, by the maintainer's decision (2026-11-02), and must be analyzed before the
+  # first public release. Rust licenses are still checked, by cargo-deny in `just check`.
   npm-dependencies:
     name: npm dependencies
     runs-on: windows-latest
@@ -142,13 +145,8 @@ jobs:
         with:
           package_json_file: apps/desktop/package.json
 
-      - name: Check licenses
-        run: just npm-licenses
-
-      # Runs when the licenses failed too, so that a run shows both results.
       - name: Check advisories
-        if: ${{ !cancelled() }}
-        run: just npm-audit
+        run: just npm-dependencies
 
   # Runs the base's copy of the script on the pull request's commits, with no file
   # from the pull request on disk:
