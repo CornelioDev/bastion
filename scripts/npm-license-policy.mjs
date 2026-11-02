@@ -8,8 +8,8 @@
 // The result relies on the license each package declares in its package.json, which
 // is what pnpm reports. Nothing reads the license texts, so a wrong declaration passes.
 //
-// Not a gate right now: the npm license check is off as a gate during the MVP,
-// by the maintainer's decision (2026-11-02), and must be analyzed before the first public release.
+// Not a gate right now: this check is off during the MVP, by the maintainer's decision
+// (2026-11-02), and must be analyzed before the first public release.
 // CI doesn't run it, and it fails today on elkjs (EPL-2.0), which has no exception.
 
 /**
