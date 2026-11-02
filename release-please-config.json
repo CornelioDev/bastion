@@ -1,0 +1,44 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/v17.6.0/schemas/config.json",
+  "release-type": "simple",
+  "include-component-in-tag": false,
+  "initial-version": "0.1.0-beta.1",
+  "versioning": "prerelease",
+  "prerelease": true,
+  "prerelease-type": "beta.1",
+  "bump-minor-pre-major": true,
+  "pull-request-title-pattern": "chore: release ${version}",
+  "pull-request-header": "Merging this pull request publishes the version below as a GitHub Release. Leave it open until the maintainer decides to release; see \"Releases\" in CONTRIBUTING.md.",
+  "changelog-sections": [
+    { "type": "feat", "section": "Added" },
+    { "type": "fix", "section": "Fixed" },
+    { "type": "perf", "section": "Changed" },
+    { "type": "revert", "section": "Changed" }
+  ],
+  "packages": {
+    ".": {
+      "extra-files": [
+        {
+          "type": "toml",
+          "path": "Cargo.toml",
+          "jsonpath": "$.workspace.package.version"
+        },
+        {
+          "type": "toml",
+          "path": "Cargo.lock",
+          "jsonpath": "$.package[?(!@.source)].version"
+        },
+        {
+          "type": "json",
+          "path": "apps/desktop/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "extension/package.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    }
+  }
+}

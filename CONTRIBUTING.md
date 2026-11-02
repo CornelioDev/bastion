@@ -173,13 +173,15 @@ Every commit must be signed off under the [Developer Certificate of Origin](http
 git commit -s -m "feat(core): …"
 ```
 
+The `DCO` app doesn't require a sign-off from a commit attributed to a bot, such as the one release-please makes on its own branch, which whoever merges it signs off ([Releases](#releases)). GitHub attributes a commit through its author email, so anyone can write a commit attributed to a bot, and the check passes it unsigned. Look at who a pull request's commits are attributed to with `gh pr view <number> --json commits`.
+
 ## Pull requests
 
 1. Fork and create a branch from `main` (`feat/blocklist-exceptions`, `fix/pipe-reconnect`).
 2. Keep PRs focused: one logical change.
 3. Add or update tests. Logic in `bastion-core` and `bastion-ipc` is developed test-first.
 4. Run `just check` locally; CI runs it and [more](#what-ci-runs). Don't modify acceptance tests (`**/tests/acceptance*`) in a feature PR; propose changes to them in a separate PR, in commits whose subject starts with `test(`, which is what [`just check-acceptance-tests`](#acceptance-tests-change-only-in-test-commits) checks.
-5. Update docs, the roadmap, and `CHANGELOG.md` (`[Unreleased]`) when relevant.
+5. Update docs and the roadmap when relevant. `CHANGELOG.md` and version numbers are generated: see [Releases](#releases).
 6. Fill in the PR template. A maintainer squash-merges the PR once the required checks pass.
 
 `main` only changes through pull requests: its ruleset has a `pull_request` rule that requires one, with squash merges only and no approvals, as a single maintainer can't approve their own, plus the required status checks. The ruleset's bypass list is empty, so this applies to the maintainer too. The squash keeps the two things a commit on `main` needs:
@@ -215,17 +217,20 @@ gh pr merge <number> --squash --delete-branch --author-email <email>
 
 **npm licenses are not checked by CI.** The npm license check is off as a gate during the MVP, by the maintainer's decision (2026-11-02), and must be analyzed before the first public release. Nothing stops a dependency with any license from coming in meanwhile. `just npm-licenses` runs it by hand, with the policy in [`scripts/npm-license-policy.mjs`](scripts/npm-license-policy.mjs), and it fails today on `elkjs` (EPL-2.0). Its result relies on what each package declares in its `package.json`; nothing reads the license texts. Rust licenses are still enforced, by `cargo deny` in `just check`.
 
+[`.github/workflows/release-please.yml`](.github/workflows/release-please.yml) also runs on every push to `main`, and is not a required check: it can fail without blocking a merge ([Releases](#releases)).
+
 The checks in the table, with the `DCO` app's, are required to merge, and a branch must be up to date with `main`. So a new advisory can block every merge until a pull request updates the package or ignores the advisory by ID. To ignore one, add its GHSA ID to `auditConfig.ignoreGhsas` in the `pnpm-workspace.yaml` of the project it affects, with a reason and a review date next to it, and to the list in [`scripts/check-npm-audit.spec.mjs`](scripts/check-npm-audit.spec.mjs). No tool enforces the review date, so it needs someone to look at it.
 
 ### What CI proves
 
-On a pull request, GitHub runs the workflows, the `justfile` and the scripts as that pull request has them. A pull request that edits any of them can make a check pass, or remove it, so CI proves little about such a change, and **a human has to catch it in review**. Look closely at any change to `.github/`, `justfile`, `scripts/`, `deny.toml`, `rust-toolchain.toml`, `Cargo.toml`, `clippy.toml`, `.cargo/config.toml`, any `build.rs`, `pnpm-workspace.yaml`, `.pnpmfile.cjs`, `.npmrc`, the lockfiles (`Cargo.lock`, `pnpm-lock.yaml`) and the package configs.
+On a pull request, GitHub runs the workflows, the `justfile` and the scripts as that pull request has them. A pull request that edits any of them can make a check pass, or remove it, so CI proves little about such a change, and **a human has to catch it in review**. Look closely at any change to `.github/`, `justfile`, `scripts/`, `deny.toml`, `rust-toolchain.toml`, `Cargo.toml`, `clippy.toml`, `.cargo/config.toml`, any `build.rs`, `pnpm-workspace.yaml`, `.pnpmfile.cjs`, `.npmrc`, the lockfiles (`Cargo.lock`, `pnpm-lock.yaml`), the package configs and `release-please-config.json`.
 
 - A required check is satisfied by its name. A pull request can keep `name: just check` with `run: exit 0`, or add a workflow with a job of that name, and the check passes.
 - A job skipped with `if: false` counts as passed.
 - A pull request from a fork needs the maintainer's approval before its workflows run, so read its `.github/` diff before approving.
 - With one maintainer no review is required, so `CODEOWNERS` blocks nothing.
 - `Acceptance tests` runs the script from the base branch, with no file of the pull request on disk, so editing the script or the `justfile` doesn't change its result. Editing `ci.yml` still does.
+- Text can steer a release, with no file changed ([Releases](#what-decides-the-version)). Read the commit messages and the description of a pull request from someone else for that text, even inside an HTML comment. Dependabot's count, as they carry third-party text such as release notes. Reviewing descriptions is what catches `BEGIN_COMMIT_OVERRIDE`; the release pull request doesn't show what it removes.
 - `scripts/check-unit-test-layout.mjs` and `scripts/unit-test-layout-rules.mjs` stay as the pull request has them: they catch accidents and ordinary code, not someone working around them. Running the base's copy wouldn't change that, as it would still build and read the pull request's code, in a job that the `justfile` and `ci.yml` of the pull request define.
 
 ### Acceptance tests change only in `test(` commits
@@ -250,6 +255,101 @@ This catches accidental changes, mostly by agents. It doesn't prove who wrote a 
 
 - **CodeQL** ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)) analyzes the Rust and TypeScript/JavaScript code on every pull request, on every push to `main` and weekly. Results appear under the repository's Security tab and on the pull request. A pull request from a fork or from Dependabot may have a token that can't upload them; its check still passes, and its results stay in the run's `sarif-*` artifacts until the code is analyzed again on `main`. The job that runs CodeQL, and with it the build scripts and proc macros of a pull request, has no permission to write results; a second job with no checkout uploads them. The required CodeQL checks prove that the analysis ran, not that its results are clean, so alerts are reviewed by hand. It only runs on GitHub, so there is nothing to run locally. The repository's "default setup" for code scanning must stay off, because it conflicts with this workflow.
 - **Secret scanning with push protection** is on for the repository; see [SECURITY.md](SECURITY.md#secret-scanning).
+- **GitHub Actions are restricted** in the repository's settings. A `uses:` that isn't pinned to a full commit hash fails. Only GitHub's own actions and a list of third-party ones can run (`taiki-e/install-action`, `pnpm/action-setup`, `googleapis/release-please-action`), so a new third-party action must be added to that list first.
+
+## Releases
+
+[release-please](https://github.com/googleapis/release-please) prepares releases from the commits on `main` ([`.github/workflows/release-please.yml`](.github/workflows/release-please.yml), [`release-please-config.json`](release-please-config.json)). Nobody writes `CHANGELOG.md` or changes a version number by hand.
+
+1. On every push to `main`, it reads the commits since the last release.
+2. If they include something to list in the changelog, it opens or updates one pull request, `chore: release <version>`, from the branch `release-please--branches--main`. It holds the new version and the changelog entry, and runs the same required checks as any other.
+3. **That pull request stays open until the maintainer decides to release, and only the maintainer merges it.** This is a rule we follow, not something enforced: the ruleset requires no approval, and the App's token (see [below](#what-the-repository-needs)) can merge it, create tags, even on a commit outside `main`, and publish or edit releases. The maintainer accepted the merge risk until T-6.5. The `release tags` ruleset, with no bypass, lets tags matching `v*` be created, but nobody can move or delete them. Merging it tags the commit `v<version>` and publishes a GitHub Release, marked as a pre-release while the version is a beta. No binaries yet: T-6.5 adds them.
+
+Until F6 is done, leave it open. The MVP's version is held back only by not merging it; `0.1.0-beta.1` doesn't change however many commits arrive before then.
+
+### What decides the version
+
+Normally, the type in the pull request's title, which becomes the squash commit's subject:
+
+| Type | In the changelog | Version |
+|---|---|---|
+| `feat` | Added | Next beta: `0.1.0-beta.1` → `0.1.0-beta.2` |
+| `fix` | Fixed | Next beta |
+| `perf`, `revert` | Changed | Next beta |
+| `feat!`, `fix!` or a `BREAKING CHANGE` footer | Breaking changes | Next beta |
+| `docs`, `chore`, `ci`, `build`, `test`, `refactor` | Not listed | None, and no release on their own |
+
+So if users should hear about a change, the title has to say so: a `feat` or `fix` commit under a title of another type is normally not listed. The first release is `0.1.0-beta.1` (`initial-version`), and it also lists the earlier commits on `main` with a `feat` or `fix` subject.
+
+Text inside commit messages and pull request descriptions can also change the version or the list: `Release-As:`, `BREAKING CHANGE`, `BEGIN_NESTED_COMMIT`, `BEGIN_COMMIT_OVERRIDE`, or a paragraph starting with a type. `Release-As:` can even produce a version with no `-beta.n`. The exact rules are release-please's, so don't assume such text is harmless wherever it sits ([what CI proves](#what-ci-proves)).
+
+To go from a beta to a stable version, in this order:
+
+1. Publish the beta, by merging its release pull request.
+2. Pass the human security review (T-6.8, [release gate](docs/workflow.md#release-gate)).
+3. In a pull request, set `"prerelease": false` in the config. With a `feat`, `fix`, `perf` or `revert` commit since the beta, the release pull request proposes the same version without `-beta.n`. With none, no release pull request opens, so add the footer `Release-As: 0.1.0`, with the version to release, on a single-commit branch, or read the squash message first with `viewerMergeBodyText` ([Pull requests](#pull-requests)). After merging, check that the release pull request proposes that version.
+
+Don't change that setting before a beta is published: it would still propose `0.1.0-beta.1`, and mark that beta as not a pre-release.
+
+### What has the version
+
+- Set by release-please: `Cargo.toml` (`[workspace.package]`, which every crate inherits), the workspace's own entries in `Cargo.lock`, and `apps/desktop/package.json` and `extension/package.json`. `.release-please-manifest.json` records the last released version. `pnpm-lock.yaml` has no version of the project, so `--locked` and `--frozen-lockfile` keep passing.
+- Derived: `tauri.conf.json` has no version, so the app takes it from `Cargo.toml`. The extension's build works out the manifest's version from `extension/package.json`, because browsers only accept numbers there ([`extension/src/manifest-version.ts`](extension/src/manifest-version.ts)): `0.1.0-beta.1` becomes `0.1.0.1`, and a final `0.1.0` becomes `0.1.0.65535`, which keeps every update higher than the one before. The `version` in `extension/src/manifest.json` never ships.
+
+### Merging the release pull request
+
+Like any other, it has to pass the required checks and be up to date with `main`. release-please rebuilds it on top of `main` after any merge that changes its text. Its text has the date, so the first merge of a new day counts, whatever its type. Each rebuild runs all the required checks again: about 30 runner minutes, which a public repository doesn't pay for, and about 17 minutes of waiting. While it is left open this is only noise, as no other pull request waits for it.
+
+A merge that doesn't change its text leaves it behind `main`, so bring it up to date just before releasing:
+
+```bash
+gh pr update-branch <number> --rebase
+```
+
+If that hits a conflict, delete the branch `release-please--branches--main` and re-run the last run of the workflow on `main`, which opens it again on top of `main`.
+
+Before merging:
+
+1. Confirm that the version in the title has `-beta.`, while the [release gate](docs/workflow.md#release-gate) holds, and that it is the next one you expect: a jump can keep `-beta.`.
+2. Read the changelog entry in full, and compare it with `git log` since the last release: reading it shows what was added, not what was removed. Changelog and release text isn't sanitized, so treat it as untrusted when reading and when using it. T-6.5 must never interpolate release or tag data into a `run:` step of a workflow.
+3. Check who its commits are attributed to, with `gh pr view <number> --json commits`: one commit, from the App's bot. The `DCO` app skips commits [attributed to a bot](https://github.com/dcoapp/app/blob/main/lib/dco.js), and that attribution comes from the commit's author email, so a passing check doesn't prove who wrote it.
+
+Then merge as usual, with one difference. The release pull request passes the `DCO` check with no sign-off, so there is none for GitHub to copy into the squash commit. Add yours when merging, because every commit on `main` has one:
+
+```bash
+gh pr merge <number> --squash --delete-branch --author-email <email> --body "Signed-off-by: <name> <email>"
+```
+
+### What the repository needs
+
+Do this before merging the workflow into `main`, and again only if the key is replaced. Pull requests opened with `GITHUB_TOKEN` trigger no workflows, so a release pull request would wait forever for its checks; a GitHub App's token does trigger them. It doesn't bypass the `main` ruleset, so anything it merged would still need the required checks, and nothing needs to be added to the ruleset's bypass list.
+
+1. **Create the App** under your account's Settings → Developer settings → GitHub Apps → New GitHub App. Give it a name that doesn't depend on the repository's. Set the homepage to the repository's URL, turn the webhook off, and allow installation only on this account. It needs these repository permissions, and no others:
+   - **Contents: Read and write**, to create the release branch and its commit, and to publish the release and its tag.
+   - **Pull requests: Read and write**, to open and update the release pull request, and for its labels (`autorelease: pending`, `autorelease: tagged`) and its comment.
+   - **Metadata: Read-only**, which GitHub adds on its own.
+
+   If a run fails on labels or comments because `Issues` turns out to be needed, add **Issues: Read and write** to the App and `permission-issues: write` to the workflow.
+
+2. **Generate a private key** on the App's page, and note its **Client ID** (not the App ID, which `create-github-app-token` no longer recommends).
+3. **Install the App** on **only** this repository.
+4. **Create an environment** named `release-please` in the repository's Settings → Environments. Under "Deployment branches and tags", choose "Selected branches and tags" and add `main`, so that only `main` can read what it holds.
+5. **In that environment**, add the variable `RELEASE_APP_CLIENT_ID` with the Client ID and the secret `RELEASE_APP_PRIVATE_KEY` with the whole contents of the key file. Then delete the file.
+
+**Check the environment before merging the workflow, or any change to it.** This is mandatory: if the environment doesn't exist when the workflow first runs, GitHub creates it with no branch rule, and a key added to it later is readable from any branch. These two commands must show `custom_branch_policies: true`, and one entry, `main`, of type `branch`:
+
+```bash
+gh api repos/CornelioDev/bastion/environments/release-please --jq .deployment_branch_policy
+gh api repos/CornelioDev/bastion/environments/release-please/deployment-branch-policies --jq '.branch_policies[]|{name,type}'
+```
+
+If the variable or secret is missing, the run fails at "Get a token from the GitHub App", with nothing published. No check requires this workflow, so merges carry on; run it again from the Actions tab once it is fixed.
+
+To rotate the key, which is also the first step if it may have leaked: generate a new one on the App's page, replace the secret `RELEASE_APP_PRIVATE_KEY`, and delete the old key from the App's page.
+
+No required check runs this workflow, so a pull request that updates `release-please-action`, Dependabot's included, proves nothing about it by passing. It receives a token that can write to the repository, so read the diff of the action's `dist/` before merging one.
+
+If a run fails with `refusing to allow a GitHub App to create or update workflow`, GitHub rejected rebuilding the release branch on a `main` whose `.github/workflows/` has changed since. Delete the branch `release-please--branches--main` and re-run the failed job: a new branch has nothing to compare against. Don't grant the App the `workflows` permission to avoid this without a security review: it would turn writing code into controlling CI and its secrets.
 
 ## Labels
 

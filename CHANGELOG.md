@@ -1,10 +1,10 @@
 # Changelog
 
-All notable changes to this project are documented in this file.
+All notable changes to this project are documented in this file. [release-please](https://github.com/googleapis/release-please) generates it from Conventional Commits when a release is prepared, so don't edit it by hand ([CONTRIBUTING.md](CONTRIBUTING.md#releases)). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [Before the first release]
 
-## [Unreleased]
+Written by hand before releases were automated. The first release's entry lists part of this work again, by commit.
 
 ### Added
 

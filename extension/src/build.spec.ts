@@ -14,6 +14,8 @@ import { fileURLToPath } from "node:url";
 import { build } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { manifestVersion } from "./manifest-version";
+
 const root = fileURLToPath(new URL("..", import.meta.url));
 
 // Builds with the real vite.config.ts, into a temporary directory so that the
@@ -53,16 +55,22 @@ describe("the build output", () => {
     ]);
   });
 
-  it("copies the manifest unchanged, and its service worker exists", () => {
-    const source = readFileSync(new URL("manifest.json", import.meta.url));
-    const built = readFileSync(join(outDir, "manifest.json"));
+  it("changes only the manifest's version, and its service worker exists", () => {
+    const source = JSON.parse(
+      readFileSync(new URL("manifest.json", import.meta.url), "utf-8"),
+    ) as Record<string, unknown>;
+    const { version: projectVersion } = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf-8"),
+    ) as { version: string };
+    const built = JSON.parse(
+      readFileSync(join(outDir, "manifest.json"), "utf-8"),
+    ) as { background: { service_worker: string } };
 
-    expect(built.equals(source)).toBe(true);
-
-    const manifest = JSON.parse(built.toString("utf-8")) as {
-      background: { service_worker: string };
-    };
-    expect(existsSync(join(outDir, manifest.background.service_worker))).toBe(
+    expect(built).toEqual({
+      ...source,
+      version: manifestVersion(projectVersion),
+    });
+    expect(existsSync(join(outDir, built.background.service_worker))).toBe(
       true,
     );
   });
