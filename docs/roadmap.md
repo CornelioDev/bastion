@@ -75,7 +75,7 @@ MVP phases: **F0 → F6**. Later: **F7 → F9**.
 - [x] **T-1.1** Data model: `Blocklist`, `Target` (`Site` | `App`), cross-platform `AppIdentifiers`, `SitePattern` exceptions.
   - Acceptance: types are `serde`-serializable; JSON round-trip tests.
   - Security: an app path is opaque text that is only compared, never opened or resolved; validation rejects UNC, device (`\\?\`, `\\.\`) and relative paths ([#11](https://github.com/CornelioDev/keitora/issues/11)). The number of targets and the length of names and patterns have defined maximums, and validation rejects values above them ([#15](https://github.com/CornelioDev/keitora/issues/15)).
-- [ ] **T-1.2** `Clock` trait (monotonic + wall clock) with a fake implementation for tests.
+- [~] **T-1.2** `Clock` trait (monotonic + wall clock) with a fake implementation for tests.
 - [ ] **T-1.3** Pomodoro state machine: `Idle → Focus → ShortBreak | LongBreak → Focus …` with configurable durations and cycles (default 25/5/15, 4 cycles).
   - Depends on: T-1.2
   - Acceptance: tests for every transition, pause (non-strict only), skip break, long-break boundary.
