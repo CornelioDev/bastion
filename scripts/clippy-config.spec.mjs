@@ -75,7 +75,7 @@ function parse(text) {
     if (value === "[") {
       array = [];
       settings.set(key, array);
-    } else if (/^(true|false|d+|"[^"]*")$/.test(value)) {
+    } else if (/^(true|false|\d+|"[^"]*")$/.test(value)) {
       settings.set(key, value);
     } else {
       throw new Error(`not a boolean, number, string or array on its own lines, ${where}`);
@@ -97,24 +97,48 @@ test("the clippy.toml of keitora-core and keitora-ipc are identical", () => {
   assert.equal(ipc, core, `${CRATES[1]} differs from ${CRATES[0]}`);
 });
 
-for (const crate of CRATES) {
-  test(`${crate} repeats every setting of the root clippy.toml`, () => {
-    const root = parse(read(ROOT));
-    const own = parse(read(crate));
-    assert.ok(root.size > 0, "the root clippy.toml has no settings");
-    for (const [key, value] of root) {
-      if (Array.isArray(value)) {
-        const ownEntries = own.get(key);
-        assert.ok(Array.isArray(ownEntries), `\`${key}\` is missing or isn't an array`);
-        const missing = value.filter((entry) => !ownEntries.includes(entry));
-        assert.deepEqual(missing, [], `\`${key}\` lacks entries of the root file`);
-      } else {
-        assert.equal(own.get(key), value, `\`${key}\` differs from the root file`);
+/** The only key a crate file may set that the root file doesn't. */
+const CRATE_ONLY_KEYS = ["disallowed-types"];
+
+/**
+ * How a crate's clippy.toml differs from the root one, as a list of problems: a root
+ * setting it lacks or sets differently, a root entry missing from one of its arrays, or a
+ * key of its own other than those in `CRATE_ONLY_KEYS`, which could weaken a lint that the
+ * root file leaves at its default.
+ */
+function drift(rootText, crateText) {
+  const root = parse(rootText);
+  const own = parse(crateText);
+  const problems = [];
+  for (const [key, value] of root) {
+    const ownValue = own.get(key);
+    if (!Array.isArray(value)) {
+      if (ownValue !== value) {
+        problems.push(`\`${key}\` differs from the root file`);
+      }
+    } else if (!Array.isArray(ownValue)) {
+      problems.push(`\`${key}\` is missing or isn't an array`);
+    } else {
+      for (const entry of value.filter((rootEntry) => !ownValue.includes(rootEntry))) {
+        problems.push(`\`${key}\` lacks the root entry ${entry}`);
       }
     }
+  }
+  for (const key of own.keys()) {
+    if (!root.has(key) && !CRATE_ONLY_KEYS.includes(key)) {
+      problems.push(`\`${key}\` isn't in the root file`);
+    }
+  }
+  return problems;
+}
+
+for (const crate of CRATES) {
+  test(`${crate} has exactly the settings of the root clippy.toml, plus its bans`, () => {
+    assert.ok(parse(read(ROOT)).size > 0, "the root clippy.toml has no settings");
+    assert.deepEqual(drift(read(ROOT), read(crate)), []);
   });
 
-  test(`${crate} bans reading the system clock and starting processes`, () => {
+  test(`${crate} bans what a pure crate mustn't do`, () => {
     const own = parse(read(crate));
     for (const [key, banned] of Object.entries(PURE_BANS)) {
       const listed = paths(own.get(key));
@@ -124,8 +148,39 @@ for (const crate of CRATES) {
   });
 }
 
+test("drift finds a root setting that the crate file lacks or changes", () => {
+  const root = 'flag = true\nlist = [\n    { path = "a" },\n]\n';
+  assert.deepEqual(drift(root, root), []);
+  assert.deepEqual(drift(root, 'flag = false\nlist = [\n    { path = "a" },\n]\n'), [
+    "`flag` differs from the root file",
+  ]);
+  assert.deepEqual(drift(root, 'list = [\n    { path = "a" },\n]\n'), [
+    "`flag` differs from the root file",
+  ]);
+  assert.deepEqual(drift(root, "flag = true\nlist = [\n]\n"), [
+    '`list` lacks the root entry { path = "a" }',
+  ]);
+  assert.deepEqual(drift(root, "flag = true\n"), ["`list` is missing or isn't an array"]);
+});
+
+test("drift finds a setting that only the crate file has, other than disallowed-types", () => {
+  const root = "flag = true\n";
+  const types = 'disallowed-types = [\n    { path = "a" },\n]\n';
+  assert.deepEqual(drift(root, `flag = true\n${types}`), []);
+  assert.deepEqual(drift(root, "flag = true\nallow-dbg-in-tests = true\n"), [
+    "`allow-dbg-in-tests` isn't in the root file",
+  ]);
+  assert.deepEqual(drift(root, "flag = true\ntoo-many-arguments-threshold = 99\n"), [
+    "`too-many-arguments-threshold` isn't in the root file",
+  ]);
+});
+
 test("the parser rejects what it can't read, instead of skipping it", () => {
   assert.equal(parse("# a comment\n\nflag = true\n").get("flag"), "true");
+  assert.equal(parse("threshold = 42\n").get("threshold"), "42");
+  assert.equal(parse('name = "x"\n').get("name"), '"x"');
+  assert.throws(() => parse("threshold = d\n"), /not a boolean/);
+  assert.throws(() => parse("threshold = dd\n"), /not a boolean/);
   assert.deepEqual(parse('list = [\n    { path = "a" },\n]\n').get("list"), ['{ path = "a" }']);
   assert.throws(() => parse("[table]\n"), /not `key = value`/);
   assert.throws(() => parse("list = [\n    { path = \"a\" }, { path = \"b\" },\n]\n"), /entry per line/);
