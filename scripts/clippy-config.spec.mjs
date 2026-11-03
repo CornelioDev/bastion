@@ -25,20 +25,47 @@ function read(path) {
 const ROOT = "clippy.toml";
 const CRATES = ["crates/keitora-core/clippy.toml", "crates/keitora-ipc/clippy.toml"];
 
-/** What the crates ban on top of the root file: no system clock, no processes (L5). */
+/**
+ * What the crates ban on top of the root file, as AGENTS.md's "Hard rules" say: no system
+ * clock, no `std::process`, no network, no other OS dependencies (L5 and L2 of the security
+ * reviews).
+ */
 const PURE_BANS = {
   "disallowed-methods": [
     "std::time::SystemTime::now",
     "std::time::SystemTime::elapsed",
     "std::time::Instant::now",
     "std::time::Instant::elapsed",
+    "std::thread::sleep",
     "chrono::Utc::now",
     "chrono::Local::now",
+    "time::OffsetDateTime::now_utc",
+    "time::OffsetDateTime::now_local",
+    "jiff::Timestamp::now",
+    "jiff::Zoned::now",
     "std::process::Command::new",
     "std::process::exit",
     "std::process::abort",
+    "std::process::id",
+    "std::env::var",
+    "std::env::var_os",
+    "std::env::vars",
+    "std::env::args",
+    "std::fs::read",
+    "std::fs::read_to_string",
+    "std::fs::write",
+    "std::fs::File::open",
+    "std::fs::File::create",
   ],
-  "disallowed-types": ["std::process::Command", "std::process::Child"],
+  "disallowed-types": [
+    "std::process::Command",
+    "std::process::Child",
+    "std::net::TcpStream",
+    "std::net::TcpListener",
+    "std::net::UdpSocket",
+    "std::fs::File",
+    "std::fs::OpenOptions",
+  ],
 };
 
 /**

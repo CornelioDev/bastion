@@ -1,5 +1,6 @@
-# Clippy settings for keitora-core and keitora-ipc, which are pure: they never
-# read the system clock or start processes (AGENTS.md, "Hard rules").
+# Clippy settings for keitora-core and keitora-ipc, which are pure: no system
+# clock, no `std::process`, no network and no other OS dependencies
+# (AGENTS.md, "Hard rules"). Each reason below names the rule it enforces.
 #
 # Clippy reads only the clippy.toml nearest a crate, so this file replaces the
 # one at the root of the workspace instead of adding to it. It has to repeat
@@ -7,8 +8,9 @@
 # the bans that apply only to these two crates. crates/keitora-core/clippy.toml
 # and crates/keitora-ipc/clippy.toml are identical, and
 # scripts/clippy-config.spec.mjs (`just test-scripts`) fails if they differ
-# from each other or stop repeating a root setting. When you change the root
-# file, change both of these too.
+# from each other, stop repeating a root setting or set a key the root file
+# doesn't (other than `disallowed-types`). When you change the root file,
+# change both of these too.
 
 # --- Repeated from the root clippy.toml ------------------------------------
 
@@ -31,27 +33,48 @@ disallowed-methods = [
 
     # --- keitora-core and keitora-ipc only ----------------------------------
 
-    # No reading of the system clock: time comes in through the `Clock` trait
-    # in keitora_core::clock. `elapsed` reads the clock as well.
-    { path = "std::time::SystemTime::now", reason = "pure crate: take the time from a `Clock`" },
-    { path = "std::time::SystemTime::elapsed", reason = "reads the system clock; pure crate: take the time from a `Clock`" },
-    { path = "std::time::Instant::now", reason = "pure crate: take the time from a `Clock`" },
-    { path = "std::time::Instant::elapsed", reason = "reads the system clock; pure crate: take the time from a `Clock`" },
-    # chrono isn't a dependency; these keep it from reading the clock if it
-    # ever becomes one. Clippy accepts a path into a crate that isn't in the
-    # build and ignores it until it is.
-    { path = "chrono::Utc::now", reason = "pure crate: take the time from a `Clock`" },
-    { path = "chrono::Local::now", reason = "pure crate: take the time from a `Clock`" },
-    # No processes: starting or ending one is the service's job.
-    { path = "std::process::Command::new", reason = "pure crate: no processes" },
-    { path = "std::process::exit", reason = "pure crate: no processes; return an error instead" },
-    { path = "std::process::abort", reason = "pure crate: no processes; return an error instead" },
+    # No direct system clock: time comes in through the `Clock` trait in
+    # keitora_core::clock. `elapsed` reads the clock too.
+    { path = "std::time::SystemTime::now", reason = "pure crate, no system clock: use a `Clock`" },
+    { path = "std::time::SystemTime::elapsed", reason = "pure crate, no system clock: use a `Clock`" },
+    { path = "std::time::Instant::now", reason = "pure crate, no system clock: use a `Clock`" },
+    { path = "std::time::Instant::elapsed", reason = "pure crate, no system clock: use a `Clock`" },
+    { path = "std::thread::sleep", reason = "pure crate, no system clock: waiting is the caller's job" },
+    # chrono, time and jiff aren't dependencies; these keep them from reading
+    # the clock if they ever become one. Clippy accepts a path into a crate
+    # that isn't in the build, and ignores it until it is.
+    { path = "chrono::Utc::now", reason = "pure crate, no system clock: use a `Clock`" },
+    { path = "chrono::Local::now", reason = "pure crate, no system clock: use a `Clock`" },
+    { path = "time::OffsetDateTime::now_utc", reason = "pure crate, no system clock: use a `Clock`" },
+    { path = "time::OffsetDateTime::now_local", reason = "pure crate, no system clock: use a `Clock`" },
+    { path = "jiff::Timestamp::now", reason = "pure crate, no system clock: use a `Clock`" },
+    { path = "jiff::Zoned::now", reason = "pure crate, no system clock: use a `Clock`" },
+    # No processes: starting, ending or naming one is the service's job.
+    { path = "std::process::Command::new", reason = "pure crate, no `std::process`" },
+    { path = "std::process::exit", reason = "pure crate, no `std::process`: return an error instead" },
+    { path = "std::process::abort", reason = "pure crate, no `std::process`: return an error instead" },
+    { path = "std::process::id", reason = "pure crate, no `std::process`" },
+    # No OS dependencies: settings and data come in as arguments.
+    { path = "std::env::var", reason = "pure crate, no OS dependencies: take it as an argument" },
+    { path = "std::env::var_os", reason = "pure crate, no OS dependencies: take it as an argument" },
+    { path = "std::env::vars", reason = "pure crate, no OS dependencies: take it as an argument" },
+    { path = "std::env::args", reason = "pure crate, no OS dependencies: take it as an argument" },
+    { path = "std::fs::read", reason = "pure crate, no OS dependencies: take the data as an argument" },
+    { path = "std::fs::read_to_string", reason = "pure crate, no OS dependencies: take the data as an argument" },
+    { path = "std::fs::write", reason = "pure crate, no OS dependencies: return the data instead" },
+    { path = "std::fs::File::open", reason = "pure crate, no OS dependencies: take the data as an argument" },
+    { path = "std::fs::File::create", reason = "pure crate, no OS dependencies: return the data instead" },
 ]
 
 # --- keitora-core and keitora-ipc only --------------------------------------
 
-# Any mention of these types, not only constructing them, is a process.
+# Any mention of these types, not only constructing them, is banned.
 disallowed-types = [
-    { path = "std::process::Command", reason = "pure crate: no processes" },
-    { path = "std::process::Child", reason = "pure crate: no processes" },
+    { path = "std::process::Command", reason = "pure crate, no `std::process`" },
+    { path = "std::process::Child", reason = "pure crate, no `std::process`" },
+    { path = "std::net::TcpStream", reason = "pure crate, no network" },
+    { path = "std::net::TcpListener", reason = "pure crate, no network" },
+    { path = "std::net::UdpSocket", reason = "pure crate, no network" },
+    { path = "std::fs::File", reason = "pure crate, no OS dependencies" },
+    { path = "std::fs::OpenOptions", reason = "pure crate, no OS dependencies" },
 ]
