@@ -128,7 +128,7 @@ coverage: coverage-rust coverage-desktop coverage-extension
 # hold only test code, never product code. Unit tests of these
 # two crates live in such files, so that the 90 % measures production code only.
 # A crate with no functions at all is an error ("no coverage data found"), not a
-# pass; see the test in each crate's lib.rs.
+# pass; see the placeholder test in keitora-ipc's lib.rs.
 
 # Fail if line coverage of keitora-core or keitora-ipc is below 90 %
 coverage-rust:

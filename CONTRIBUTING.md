@@ -63,7 +63,7 @@ What the gate doesn't measure:
 - Code under `#[cfg(not(test))]`, which is compiled only outside tests. That includes a real function that a test double replaces during tests.
 - Code under `#[cfg(not(feature = "..."))]`, which isn't compiled with `--all-features`. Code under `#[cfg(feature = "...")]` is measured.
 
-A crate with no functions at all fails with "no coverage data found", so `keitora-core` and `keitora-ipc` each have one inline placeholder test, the only inline test allowed in them, until they have real code.
+A crate with no functions at all fails with "no coverage data found", so `keitora-ipc` has one inline placeholder test, the only inline test allowed in it, until it has real code. `keitora-core` had one too, until T-1.1 gave it real code.
 
 `just check` enforces this layout in those two crates (`just unit-test-layout`, [`scripts/check-unit-test-layout.mjs`](scripts/check-unit-test-layout.mjs)). It exits with 0 when they follow it, with 1 when they don't (each violation is listed), and with 2 when it can't tell, which is never a pass. It is a guard against accidents and ordinary code, not a sandbox. It fails if:
 
@@ -72,7 +72,7 @@ A crate with no functions at all fails with "no coverage data found", so `keitor
 - A file only the tests read is one coverage measures. Its lines would add to the score, so a test helper has to be named `tests.rs` or `*_tests.rs`, or be in a directory named `tests`.
 - A build reads a file that is neither Rust nor data (`.json`, `.md`, `.toml`) under a name coverage measures, or a written `#[path]` or `include!` names a file that isn't `.rs`, or a `use` renames `include`. What a macro assembles is listed below.
 - `[profile.test]` makes optimization, debug info, debug assertions or overflow checks differ from dev.
-- A test attribute (`#[test]` and its longer paths, `#[bench]`, `#[test_case]`, any other with `test` in its name) or a `use` of one appears outside a file named `tests.rs` or `*_tests.rs`, or a directory named `tests`, `examples` or `benches`. The placeholder test is the exception, exactly as it is, in each crate's `src/lib.rs`.
+- A test attribute (`#[test]` and its longer paths, `#[bench]`, `#[test_case]`, any other with `test` in its name) or a `use` of one appears outside a file named `tests.rs` or `*_tests.rs`, or a directory named `tests`, `examples` or `benches`. The placeholder test is the exception, exactly as it is, in the `src/lib.rs` of a crate listed in `PLACEHOLDER_CRATES` ([`scripts/unit-test-layout-rules.mjs`](scripts/unit-test-layout-rules.mjs)), now only `keitora-ipc`.
 - Anywhere in the crate's directory, test files included, leaving out only a `target` directory directly in it: `#[cfg(not(test))]` or `cfg_attr(test` in any form (`cfg(any(not(test)))`, `cfg![not(test)]`), a `cfg` on `debug_assertions` or on cargo-llvm-cov's own `coverage`, a `$` inside the brackets of a written `cfg`, or `cfg_select!`, `cfg_match!` and `cfg_if!`.
 - `#[cfg(test)]` or `cfg!(test)` appears in a measured file anywhere but directly before `mod tests;`, with no other attribute next to it. A test helper goes in the test file.
 

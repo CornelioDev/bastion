@@ -186,7 +186,14 @@ export function tokenize(source) {
   return tokens;
 }
 
-/** The one inline test allowed, in each crate's `src/lib.rs`, until it is deleted. */
+/**
+ * The crates whose `src/lib.rs` may still hold the placeholder test. A crate leaves this
+ * list, and deletes its placeholder, once it has tested code: the placeholder only
+ * gives `just coverage` a line to measure in a crate that has none.
+ */
+export const PLACEHOLDER_CRATES = new Set(["keitora-ipc"]);
+
+/** The one inline test allowed, in the `src/lib.rs` of the crates above, until it is deleted. */
 const PLACEHOLDER = tokenTexts(`
   #[cfg(test)]
   mod tests {
@@ -392,12 +399,13 @@ function usesRenamableName(tokens, index, names) {
  * they come in `source`; `index` is where the rule is broken.
  *
  * `isTestFile` is for files `just coverage` doesn't measure, where tests belong: only
- * what makes production code differ under test is banned there. `isCrateRoot` is for
- * the crate's `src/lib.rs`, the one place for the placeholder test.
+ * what makes production code differ under test is banned there. `mayHoldPlaceholder` is
+ * for the `src/lib.rs` of a crate in `PLACEHOLDER_CRATES`, the one place for the
+ * placeholder test.
  *
  * Throws if the source can't be read for sure: see tokenize().
  */
-export function scanSource(source, { isTestFile, isCrateRoot }) {
+export function scanSource(source, { isTestFile, mayHoldPlaceholder }) {
   // After a `#!` that doesn't start an attribute, rustc skips the first line, and what
   // it counts as an attribute depends on the kinds of comment that follow. A library
   // has no use for one, so anything but the plain form is no verdict.
@@ -408,7 +416,7 @@ export function scanSource(source, { isTestFile, isCrateRoot }) {
   const partners = matchBrackets(tokens);
 
   const placeholderStart =
-    isCrateRoot && !isTestFile
+    mayHoldPlaceholder && !isTestFile
       ? tokens.findIndex((_, index) => matchesAt(tokens, index, PLACEHOLDER))
       : -1;
   const isPlaceholder = (index) =>
