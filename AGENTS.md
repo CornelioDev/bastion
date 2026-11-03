@@ -38,7 +38,7 @@ keitora/
 
 ## Hard rules
 
-- **`keitora-core` and `keitora-ipc` are pure.** No `windows` crate, no `std::process`, no network, no direct system clock. Time comes in through the injectable `Clock` trait. Both crates use `#![forbid(unsafe_code)]`.
+- **`keitora-core` and `keitora-ipc` are pure.** No `windows` crate, no `std::process`, no network, no direct system clock. Time comes in through the injectable `Clock` trait. Both crates use `#![forbid(unsafe_code)]`, and their own `clippy.toml` bans reading the clock and `std::process`; it replaces the root one, so it repeats the root's settings.
 - **The UI and the extension are untrusted.** The service validates every incoming message. No client request can shorten, pause, or cancel an active strict session, or edit the blocklist it uses.
 - **`unsafe` lives only in `keitora-service/src/sys/`**, one wrapper per Win32 call, each with a `// SAFETY:` comment.
 - **No telemetry.** Nothing leaves the user's machine unless a future, opt-in sync feature is explicitly enabled.
@@ -96,7 +96,7 @@ pnpm tauri dev
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
 # Tests of the Node.js scripts
-node --test scripts/check-acceptance-tests.spec.mjs scripts/check-npm-audit.spec.mjs scripts/check-npm-licenses.spec.mjs scripts/check-unit-test-layout.spec.mjs
+node --test scripts/check-acceptance-tests.spec.mjs scripts/check-npm-audit.spec.mjs scripts/check-npm-licenses.spec.mjs scripts/check-unit-test-layout.spec.mjs scripts/clippy-config.spec.mjs
 
 # Run the service without installing it (development)
 cargo run -p keitora-service -- --console
