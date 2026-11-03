@@ -457,6 +457,10 @@ fn every_kind_of_problem_has_a_message() {
             "contains a control character",
         ),
         (
+            ValidationErrorKind::NotAnId,
+            "may only contain ASCII letters, digits and -",
+        ),
+        (
             ValidationErrorKind::NotAColor,
             "is not a color in the form #rrggbb",
         ),
@@ -501,4 +505,261 @@ fn site_pattern_keeps_its_text_exactly() {
         assert_eq!(SitePattern::new(text).as_str(), text);
         assert_eq!(SitePattern::new(text.to_owned()).as_str(), text);
     }
+}
+
+#[test]
+fn id_holds_only_ascii_letters_digits_and_hyphens() {
+    for id in [
+        "3f0c6b1e-8a52-4c1d-9e2b-7d4a1f6c0b9e",
+        "3F0C6B1E-8A52-4C1D-9E2B-7D4A1F6C0B9E",
+        "list-1",
+    ] {
+        let blocklist = Blocklist {
+            id: id.to_owned(),
+            ..valid()
+        };
+        assert_eq!(blocklist.validate(), Ok(()), "{id:?}");
+    }
+    for id in [
+        "a/b",
+        r"a\b",
+        "..",
+        "../x",
+        "a.b",
+        "a_b",
+        "a b",
+        "a:b",
+        "caf\u{e9}",
+        "\u{ff11}",
+    ] {
+        let blocklist = Blocklist {
+            id: id.to_owned(),
+            ..valid()
+        };
+        assert_eq!(
+            rejection(&blocklist),
+            rejected_as("id", ValidationErrorKind::NotAnId),
+            "{id:?}"
+        );
+    }
+}
+
+#[test]
+fn bidi_controls_separators_and_the_bom_are_rejected_in_any_text() {
+    for c in [
+        '\u{200E}', '\u{200F}', '\u{202A}', '\u{202B}', '\u{202C}', '\u{202D}', '\u{202E}',
+        '\u{2066}', '\u{2067}', '\u{2068}', '\u{2069}', '\u{2028}', '\u{2029}', '\u{FEFF}',
+    ] {
+        let name = Blocklist {
+            name: format!("Deep{c}work"),
+            ..valid()
+        };
+        assert_eq!(
+            rejection(&name),
+            rejected_as("name", ValidationErrorKind::ControlCharacter),
+            "U+{:04X} in a name",
+            u32::from(c)
+        );
+
+        let pattern = Blocklist {
+            targets: vec![site(&format!("youtube.com{c}"))],
+            ..valid()
+        };
+        assert_eq!(
+            rejection(&pattern),
+            rejected_as("targets[0].pattern", ValidationErrorKind::ControlCharacter),
+            "U+{:04X} in a pattern",
+            u32::from(c)
+        );
+
+        let exe_name = with_ids(exe(&format!("steam{c}.exe")));
+        assert_eq!(
+            rejection(&exe_name),
+            rejected_as(
+                "targets[1].ids.windows_exe",
+                ValidationErrorKind::ControlCharacter
+            ),
+            "U+{:04X} in an executable name",
+            u32::from(c)
+        );
+    }
+}
+
+#[test]
+fn joiners_are_allowed_in_names() {
+    // A family emoji: man, ZWJ, woman, ZWJ, girl.
+    let family = "\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}";
+    // Persian "mi-khaham", which needs a zero-width non-joiner.
+    let persian = "\u{645}\u{6CC}\u{200C}\u{62E}\u{648}\u{627}\u{647}\u{645}";
+    for name in [
+        family,
+        persian,
+        "Family \u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467} time",
+    ] {
+        let blocklist = Blocklist {
+            name: name.to_owned(),
+            targets: vec![Target::App {
+                name: name.to_owned(),
+                ids: exe("steam.exe"),
+            }],
+            ..valid()
+        };
+        assert_eq!(blocklist.validate(), Ok(()), "{name:?}");
+    }
+}
+
+#[test]
+fn a_target_is_written_with_only_its_own_fields() {
+    let written = serde_json::to_string(&site("youtube.com")).unwrap();
+    assert_eq!(written, r#"{"kind":"site","pattern":"youtube.com"}"#);
+
+    let written = serde_json::to_string(&app(exe("steam.exe"))).unwrap();
+    assert_eq!(
+        written,
+        r#"{"kind":"app","name":"Steam","ids":{"windows_exe":"steam.exe"}}"#
+    );
+}
+
+#[test]
+fn unknown_fields_in_a_target_are_skipped() {
+    let read: Target = serde_json::from_str(
+        r#"{"junk":[0,{"a":[1,2]}],"kind":"site","pattern":"youtube.com","more":null}"#,
+    )
+    .unwrap();
+    assert_eq!(read, site("youtube.com"));
+
+    let read: Target = serde_json::from_str(
+        r#"{"kind":"app","name":"Steam","extra":"x","ids":{"windows_exe":"steam.exe"}}"#,
+    )
+    .unwrap();
+    assert_eq!(read, app(exe("steam.exe")));
+}
+
+#[test]
+fn a_target_with_fields_of_the_other_kind_is_rejected() {
+    for json in [
+        r#"{"kind":"site","pattern":"youtube.com","ids":{"windows_exe":"steam.exe"}}"#,
+        r#"{"kind":"site","pattern":"youtube.com","name":"YouTube"}"#,
+        r#"{"kind":"app","name":"Steam","ids":{"windows_exe":"steam.exe"},"pattern":"x.com"}"#,
+    ] {
+        assert!(serde_json::from_str::<Target>(json).is_err(), "{json}");
+    }
+}
+
+#[test]
+fn a_target_without_its_required_fields_is_rejected() {
+    for json in [
+        r#"{"kind":"site"}"#,
+        r#"{"kind":"site","pattern":null}"#,
+        r#"{"kind":"app","ids":{"windows_exe":"steam.exe"}}"#,
+        r#"{"kind":"app","name":"Steam"}"#,
+        r#"{"kind":"app","name":"Steam","ids":null}"#,
+        r#"{"pattern":"youtube.com"}"#,
+        r#"{"kind":"device","pattern":"youtube.com"}"#,
+        r#"{"kind":"Site","pattern":"youtube.com"}"#,
+        r#"{"kind":"site","pattern":"a.com","pattern":"b.com"}"#,
+        r#"["site","youtube.com"]"#,
+    ] {
+        assert!(serde_json::from_str::<Target>(json).is_err(), "{json}");
+    }
+}
+
+/// A JSON-like value for [`target_from`]: text, or a value that can be skipped
+/// but fails if anything reads it, as serde does when it buffers the fields of
+/// an internally tagged enum before choosing the variant.
+enum Field {
+    Text(&'static str),
+    Untouchable,
+}
+
+impl<'de> serde::Deserializer<'de> for Field {
+    type Error = serde::de::value::Error;
+
+    fn deserialize_any<V: serde::de::Visitor<'de>>(
+        self,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error> {
+        match self {
+            Self::Text(text) => visitor.visit_borrowed_str(text),
+            Self::Untouchable => Err(serde::de::Error::custom(
+                "an unknown field was read instead of skipped",
+            )),
+        }
+    }
+
+    fn deserialize_option<V: serde::de::Visitor<'de>>(
+        self,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error> {
+        visitor.visit_some(self)
+    }
+
+    fn deserialize_enum<V: serde::de::Visitor<'de>>(
+        self,
+        name: &'static str,
+        variants: &'static [&'static str],
+        visitor: V,
+    ) -> Result<V::Value, Self::Error> {
+        match self {
+            Self::Text(text) => serde::de::value::StrDeserializer::<Self::Error>::new(text)
+                .deserialize_enum(name, variants, visitor),
+            Self::Untouchable => self.deserialize_any(visitor),
+        }
+    }
+
+    fn deserialize_ignored_any<V: serde::de::Visitor<'de>>(
+        self,
+        visitor: V,
+    ) -> Result<V::Value, Self::Error> {
+        visitor.visit_unit()
+    }
+
+    serde::forward_to_deserialize_any! {
+        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+        bytes byte_buf unit unit_struct newtype_struct seq tuple tuple_struct
+        map struct identifier
+    }
+}
+
+impl serde::de::IntoDeserializer<'_, serde::de::value::Error> for Field {
+    type Deserializer = Self;
+
+    fn into_deserializer(self) -> Self {
+        self
+    }
+}
+
+/// Deserializes a `T` from an object with these fields.
+fn target_from<'de, T: Deserialize<'de>>(
+    fields: Vec<(&'static str, Field)>,
+) -> Result<T, serde::de::value::Error> {
+    T::deserialize(serde::de::value::MapDeserializer::new(fields.into_iter()))
+}
+
+#[test]
+fn unknown_fields_in_a_target_are_skipped_without_being_read() {
+    let read: Target = target_from(vec![
+        ("kind", Field::Text("site")),
+        ("junk", Field::Untouchable),
+        ("pattern", Field::Text("youtube.com")),
+    ])
+    .unwrap();
+    assert_eq!(read, site("youtube.com"));
+
+    // The guard works: an internally tagged enum, which is what `Target` must
+    // not go back to, reads every field before it looks at `kind`.
+    #[derive(Debug, Deserialize)]
+    #[serde(tag = "kind", rename_all = "snake_case")]
+    enum Tagged {
+        Site {
+            #[expect(dead_code, reason = "only deserialized")]
+            pattern: String,
+        },
+    }
+    let tagged = target_from::<Tagged>(vec![
+        ("kind", Field::Text("site")),
+        ("junk", Field::Untouchable),
+        ("pattern", Field::Text("youtube.com")),
+    ]);
+    assert!(tagged.is_err(), "{tagged:?}");
 }

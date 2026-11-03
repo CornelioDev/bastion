@@ -47,7 +47,14 @@
 //! JavaScript, `new TextEncoder().encode(text).length`, not `text.length`).
 //!
 //! Every text value must also be non-empty and free of control characters,
-//! such as line breaks, which no name, pattern, path or identifier needs.
+//! which no name, pattern, path or identifier needs: those of Unicode's
+//! category Cc (such as line breaks), the line and paragraph separators
+//! (U+2028, U+2029), the byte order mark (U+FEFF), and the bidirectional
+//! controls (U+200E, U+200F, U+202A to U+202E, U+2066 to U+2069), which can
+//! make text display differently from what it says. Other format characters
+//! are allowed: names need the zero-width joiner (U+200D) for emoji such as
+//! 👨‍👩‍👧, and the zero-width non-joiner (U+200C) in some scripts. An id is
+//! stricter still: ASCII letters, digits and `-` only.
 //!
 //! ## Application paths
 //!
@@ -109,7 +116,8 @@ pub const MAX_APP_ID_LEN: usize = 1024;
 /// A named list of websites and applications to block during focus.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Blocklist {
-    /// Unique identifier, usually a UUID; at most [`MAX_ID_LEN`] bytes.
+    /// Unique identifier, usually a UUID: ASCII letters, digits and `-`
+    /// only, at most [`MAX_ID_LEN`] bytes.
     pub id: String,
     /// Name shown to the user; at most [`MAX_NAME_LEN`] bytes.
     pub name: String,
@@ -126,9 +134,11 @@ pub struct Blocklist {
 
 /// Something a blocklist blocks: a website or an application.
 ///
-/// In JSON it is an object tagged by `kind`, either `"site"` or `"app"`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "snake_case")]
+/// In JSON it is an object tagged by `kind`: `{ "kind": "site", "pattern": … }`
+/// or `{ "kind": "app", "name": …, "ids": … }`. A target with a field of the
+/// other kind (a site with `ids`, an app with a `pattern`) is rejected; other
+/// unknown fields are skipped.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Target {
     /// A website, on any platform.
     Site {
@@ -205,6 +215,93 @@ impl SitePattern {
     }
 }
 
+// `Target` goes through a flat struct in JSON instead of serde's
+// `#[serde(tag = "kind")]`. For an internally tagged enum, serde first copies
+// the whole object, unknown fields included, into a buffer and only then picks
+// the variant, so a client could make the service hold many times the size of
+// a message in memory. A plain struct skips unknown fields without keeping
+// them.
+
+/// The `kind` of a target in JSON.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum TargetKind {
+    Site,
+    App,
+}
+
+/// Every field a target can have in JSON, as read.
+#[derive(Deserialize)]
+struct RawTarget {
+    kind: TargetKind,
+    pattern: Option<SitePattern>,
+    name: Option<String>,
+    ids: Option<AppIdentifiers>,
+}
+
+/// A target as written to JSON; fields of the other kind are left out.
+#[derive(Serialize)]
+struct TargetRef<'a> {
+    kind: TargetKind,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pattern: Option<&'a SitePattern>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ids: Option<&'a AppIdentifiers>,
+}
+
+impl Serialize for Target {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let flat = match self {
+            Self::Site { pattern } => TargetRef {
+                kind: TargetKind::Site,
+                pattern: Some(pattern),
+                name: None,
+                ids: None,
+            },
+            Self::App { name, ids } => TargetRef {
+                kind: TargetKind::App,
+                pattern: None,
+                name: Some(name),
+                ids: Some(ids),
+            },
+        };
+        flat.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Target {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        use serde::de::Error;
+
+        let raw = RawTarget::deserialize(deserializer)?;
+        match raw.kind {
+            TargetKind::Site => {
+                if raw.name.is_some() || raw.ids.is_some() {
+                    return Err(D::Error::custom(
+                        "a site target has a `pattern`, not a `name` or `ids`",
+                    ));
+                }
+                let pattern = raw
+                    .pattern
+                    .ok_or_else(|| D::Error::missing_field("pattern"))?;
+                Ok(Self::Site { pattern })
+            }
+            TargetKind::App => {
+                if raw.pattern.is_some() {
+                    return Err(D::Error::custom(
+                        "an app target has a `name` and `ids`, not a `pattern`",
+                    ));
+                }
+                let name = raw.name.ok_or_else(|| D::Error::missing_field("name"))?;
+                let ids = raw.ids.ok_or_else(|| D::Error::missing_field("ids"))?;
+                Ok(Self::App { name, ids })
+            }
+        }
+    }
+}
+
 impl Blocklist {
     /// Checks that every value in the blocklist is within the limits and in
     /// the expected form (see the module documentation).
@@ -214,7 +311,9 @@ impl Blocklist {
     /// Returns the first problem found, with the JSON path of the value that
     /// has it, such as `targets[2].ids.windows_path`.
     pub fn validate(&self) -> Result<(), ValidationError> {
-        check_text(&self.id, MAX_ID_LEN).map_err(|kind| ValidationError::new("id", kind))?;
+        check_text(&self.id, MAX_ID_LEN)
+            .and_then(|()| check_id(&self.id))
+            .map_err(|kind| ValidationError::new("id", kind))?;
         check_text(&self.name, MAX_NAME_LEN).map_err(|kind| ValidationError::new("name", kind))?;
         if !is_hex_color(&self.color) {
             return Err(ValidationError::new(
@@ -289,8 +388,12 @@ pub enum ValidationErrorKind {
         /// Maximum number of items.
         max: usize,
     },
-    /// The text contains a control character, such as a line break.
+    /// The text contains a control character, such as a line break or a
+    /// bidirectional control (see the module documentation).
     ControlCharacter,
+    /// The id contains a character other than an ASCII letter, a digit or
+    /// `-`.
+    NotAnId,
     /// The color is not in the form `#rrggbb`.
     NotAColor,
     /// The Windows executable name contains a character Windows forbids in
@@ -314,6 +417,7 @@ impl fmt::Display for ValidationErrorKind {
                 write!(f, "has {count} items, more than the maximum of {max}")
             }
             Self::ControlCharacter => f.write_str("contains a control character"),
+            Self::NotAnId => f.write_str("may only contain ASCII letters, digits and -"),
             Self::NotAColor => f.write_str("is not a color in the form #rrggbb"),
             Self::NotAFileName => f.write_str(
                 "is not a file name: it contains one of the characters < > : \" / \\ | ? *",
@@ -369,7 +473,7 @@ fn validate_ids(ids: &AppIdentifiers) -> Result<(), (&'static str, ValidationErr
 }
 
 /// Checks that text is non-empty, at most `max` bytes long and free of
-/// control characters.
+/// control characters (see [`is_forbidden`]).
 fn check_text(text: &str, max: usize) -> Result<(), ValidationErrorKind> {
     if text.is_empty() {
         Err(ValidationErrorKind::Empty)
@@ -378,10 +482,37 @@ fn check_text(text: &str, max: usize) -> Result<(), ValidationErrorKind> {
             len: text.len(),
             max,
         })
-    } else if text.chars().any(char::is_control) {
+    } else if text.chars().any(is_forbidden) {
         Err(ValidationErrorKind::ControlCharacter)
     } else {
         Ok(())
+    }
+}
+
+/// Tells if a character is a control character no text value may hold: one
+/// of category Cc, a bidirectional control, a line or paragraph separator, or
+/// the byte order mark. The zero-width joiner and non-joiner are allowed.
+fn is_forbidden(c: char) -> bool {
+    c.is_control()
+        || matches!(
+            c,
+            '\u{200E}'
+                | '\u{200F}'
+                | '\u{202A}'..='\u{202E}'
+                | '\u{2066}'..='\u{2069}'
+                | '\u{2028}'
+                | '\u{2029}'
+                | '\u{FEFF}'
+        )
+}
+
+/// Checks that an id holds only ASCII letters, digits and `-`, so it is safe
+/// wherever it ends up, such as in a file name or a log line.
+fn check_id(id: &str) -> Result<(), ValidationErrorKind> {
+    if id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-') {
+        Ok(())
+    } else {
+        Err(ValidationErrorKind::NotAnId)
     }
 }
 
