@@ -8,8 +8,10 @@
 //! always passed in by the caller). That keeps it easy to test and reusable on
 //! other platforms.
 //!
+//! - [`clock`]: the source of time, and a fake one for tests.
 //! - [`model`]: blocklists, their targets and exceptions, and their validation.
 
 #![forbid(unsafe_code)]
 
+pub mod clock;
 pub mod model;
