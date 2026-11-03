@@ -37,7 +37,8 @@
 //    - A test attribute (`#[test]`, a path ending in it, `#[bench]`, `#[test_case]`, or
 //      any other with `test` in its name, as dependencies name theirs) fails outside a test
 //      file, and so does a `use` of one, which could rename it. The placeholder test is the
-//      exception, exactly as it is, in each crate's `src/lib.rs`, until it is deleted.
+//      exception, exactly as it is, in the `src/lib.rs` of a crate that still has one
+//      (`PLACEHOLDER_CRATES` in the rules, now only `keitora-ipc`), until it is deleted.
 //    - In any file: a `use` of `include`, because data files that only tests read are
 //      allowed, and a renamed `include!` would compile one as measured code.
 //    - In any file: `cfg` or `cfg!` with `not` and `test`, any `cfg_attr` mentioning `test`,
@@ -96,6 +97,7 @@ import {
   isTestFilePath,
   parseDepInfo,
   pathSegments,
+  PLACEHOLDER_CRATES,
   scanSource,
   selectBuilds,
   show,
@@ -331,7 +333,8 @@ function checkSources(crate, files, root, violations) {
       source = readUtf8(file);
       problems = scanSource(source, {
         isTestFile: isTestFilePath(segments),
-        isCrateRoot: segments.join("/") === "src/lib.rs",
+        mayHoldPlaceholder:
+          PLACEHOLDER_CRATES.has(crate.name) && segments.join("/") === "src/lib.rs",
       });
     } catch (error) {
       throw new Error(`could not read ${shown}: ${error.message}`);

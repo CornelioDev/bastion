@@ -41,9 +41,9 @@ mod tests {
 }
 `;
 
-const MEASURED = { isTestFile: false, isCrateRoot: false };
-const CRATE_ROOT = { isTestFile: false, isCrateRoot: true };
-const TEST_FILE = { isTestFile: true, isCrateRoot: false };
+const MEASURED = { isTestFile: false, mayHoldPlaceholder: false };
+const CRATE_ROOT = { isTestFile: false, mayHoldPlaceholder: true };
+const TEST_FILE = { isTestFile: true, mayHoldPlaceholder: false };
 
 /** Declares tests that expect `scanSource` to find nothing in each source. */
 function allowed(where, options, cases) {
@@ -140,13 +140,13 @@ rejected("a measured file", MEASURED, [
   ["the placeholder outside lib.rs", PLACEHOLDER],
 ]);
 
-allowed("a crate's lib.rs", CRATE_ROOT, [
+allowed("the lib.rs of a crate with a placeholder", CRATE_ROOT, [
   ["the placeholder", `//! Docs.\n\n#![forbid(unsafe_code)]\n\n${PLACEHOLDER}`],
   ["the placeholder, reformatted", "# [ cfg ( test ) ] mod tests { # [ test ] fn gives_the_coverage_gate_a_line_to_measure ( ) { } }\n"],
   ["the placeholder and a sibling test module of another file", `pub mod engine;\n${PLACEHOLDER}`],
 ]);
 
-rejected("a crate's lib.rs", CRATE_ROOT, [
+rejected("the lib.rs of a crate with a placeholder", CRATE_ROOT, [
   ["the placeholder with a body", PLACEHOLDER.replace("{}", "{ super::a(); }")],
   ["the placeholder under another name", PLACEHOLDER.replace("gives_the", "gives")],
   ["the placeholder with one more test", PLACEHOLDER.replace("{}\n", "{}\n    #[test]\n    fn b() {}\n")],
@@ -516,7 +516,10 @@ after(() => rmSync(scratch, { recursive: true, force: true }));
 
 let workspaces = 0;
 
-/** A workspace laid out like this repository's, with the two crates at their placeholders. */
+/**
+ * A workspace laid out like this repository's: keitora-core with no code yet, and
+ * keitora-ipc at its placeholder.
+ */
 class Workspace {
   constructor(parent = "plain") {
     workspaces += 1;
@@ -533,9 +536,10 @@ class Workspace {
       "crates/other/src/lib.rs": "",
     });
     for (const name of ["keitora-core", "keitora-ipc"]) {
+      const placeholder = name === "keitora-ipc" ? `\n${PLACEHOLDER}` : "";
       this.write({
         [`crates/${name}/Cargo.toml`]: manifest(name),
-        [`crates/${name}/src/lib.rs`]: `//! Docs.\n\n#![forbid(unsafe_code)]\n\n${PLACEHOLDER}`,
+        [`crates/${name}/src/lib.rs`]: `//! Docs.\n\n#![forbid(unsafe_code)]\n${placeholder}`,
       });
     }
   }
@@ -577,8 +581,8 @@ function manifest(name) {
 const CORE = "crates/keitora-core/src";
 const IPC = "crates/keitora-ipc/src";
 
-/** A crate root with the given code before the placeholder. */
-const lib = (code) => `//! Docs.\n\n${code}\n\n${PLACEHOLDER}`;
+/** A crate root with the given code. */
+const lib = (code) => `//! Docs.\n\n${code}\n`;
 
 /** A crate root with sibling tests, and product code a build can see. */
 const TESTED = "//! Docs.\n\n/// Docs.\npub fn a() {}\n\n#[cfg(test)]\nmod tests;\n";
@@ -604,9 +608,16 @@ function violationBatch(title, code, cases) {
   });
 }
 
-test("exit 0: the two crates with their placeholders", () => {
+test("exit 0: keitora-ipc with its placeholder, and keitora-core with none", () => {
   const { stdout } = new Workspace().expect(PASS);
   assert.match(stdout, /all fine/);
+});
+
+test("exit 1: the placeholder in keitora-core, which has real code now", () => {
+  const workspace = new Workspace();
+  workspace.write({ [`${CORE}/lib.rs`]: lib(PLACEHOLDER) });
+  const { stderr } = workspace.expect(VIOLATION);
+  assert.match(stderr, /keitora-core.*test attribute/);
 });
 
 test("exit 0: sibling test files, in each accepted form", () => {
