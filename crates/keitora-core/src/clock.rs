@@ -115,9 +115,12 @@ impl MonotonicInstant {
 /// # Ok::<(), keitora_core::clock::AdvanceError>(())
 /// ```
 ///
-/// It is compiled in every build, not only for tests, so that other crates'
-/// tests can use it: this crate can't put it behind `cfg(test)` or a feature
-/// (`scripts/check-unit-test-layout.mjs`).
+/// It is compiled in every build, not only for tests. `cfg(test)` would hide
+/// it from other crates' tests and from this crate's integration tests. A
+/// feature such as `test-util` would work for other crates, but this crate's
+/// own integration tests could only turn it on through a dev-dependency on
+/// itself, which `scripts/check-unit-test-layout.mjs` rejects, as it does any
+/// local dependency it doesn't list.
 #[derive(Debug, Clone)]
 pub struct FakeClock {
     /// The time every clone reads and changes.
