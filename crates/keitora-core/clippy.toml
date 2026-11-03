@@ -1,0 +1,57 @@
+# Clippy settings for keitora-core and keitora-ipc, which are pure: they never
+# read the system clock or start processes (AGENTS.md, "Hard rules").
+#
+# Clippy reads only the clippy.toml nearest a crate, so this file replaces the
+# one at the root of the workspace instead of adding to it. It has to repeat
+# every setting of the root file, which keep their meaning here, followed by
+# the bans that apply only to these two crates. crates/keitora-core/clippy.toml
+# and crates/keitora-ipc/clippy.toml are identical, and
+# scripts/clippy-config.spec.mjs (`just test-scripts`) fails if they differ
+# from each other or stop repeating a root setting. When you change the root
+# file, change both of these too.
+
+# --- Repeated from the root clippy.toml ------------------------------------
+
+# A panic is how a test fails, so `unwrap()`, `expect()`, `panic!` and
+# indexing are fine inside `#[test]` functions and `#[cfg(test)]` modules.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-indexing-slicing-in-tests = true
+
+# The root file's methods come first: see why each is banned there. The ones
+# after them are for these crates only.
+disallowed-methods = [
+    { path = "slice::split_at", reason = "panics if out of range; use `split_at_checked`" },
+    { path = "slice::split_at_mut", reason = "panics if out of range; use `split_at_mut_checked`" },
+    { path = "str::split_at", reason = "panics if out of range or not on a char boundary; use `split_at_checked`" },
+    { path = "str::split_at_mut", reason = "panics if out of range or not on a char boundary; use `split_at_mut_checked`" },
+    { path = "core::iter::Iterator::sum", reason = "panics on overflow; use `try_fold` with `checked_add`" },
+    { path = "core::iter::Iterator::product", reason = "panics on overflow; use `try_fold` with `checked_mul`" },
+
+    # --- keitora-core and keitora-ipc only ----------------------------------
+
+    # No reading of the system clock: time comes in through the `Clock` trait
+    # in keitora_core::clock. `elapsed` reads the clock as well.
+    { path = "std::time::SystemTime::now", reason = "pure crate: take the time from a `Clock`" },
+    { path = "std::time::SystemTime::elapsed", reason = "reads the system clock; pure crate: take the time from a `Clock`" },
+    { path = "std::time::Instant::now", reason = "pure crate: take the time from a `Clock`" },
+    { path = "std::time::Instant::elapsed", reason = "reads the system clock; pure crate: take the time from a `Clock`" },
+    # chrono isn't a dependency; these keep it from reading the clock if it
+    # ever becomes one. Clippy accepts a path into a crate that isn't in the
+    # build and ignores it until it is.
+    { path = "chrono::Utc::now", reason = "pure crate: take the time from a `Clock`" },
+    { path = "chrono::Local::now", reason = "pure crate: take the time from a `Clock`" },
+    # No processes: starting or ending one is the service's job.
+    { path = "std::process::Command::new", reason = "pure crate: no processes" },
+    { path = "std::process::exit", reason = "pure crate: no processes; return an error instead" },
+    { path = "std::process::abort", reason = "pure crate: no processes; return an error instead" },
+]
+
+# --- keitora-core and keitora-ipc only --------------------------------------
+
+# Any mention of these types, not only constructing them, is a process.
+disallowed-types = [
+    { path = "std::process::Command", reason = "pure crate: no processes" },
+    { path = "std::process::Child", reason = "pure crate: no processes" },
+]
