@@ -1,6 +1,6 @@
 <div align="center">
 
-# Keitora
+<img src="docs/assets/brand/keitora-logo.png" alt="Keitora" width="200">
 
 **A Pomodoro timer that actually keeps you focused.**
 Block distracting websites and apps during focus sessions — and, in strict mode, make sure you can't turn it off until the timer ends.
@@ -11,6 +11,13 @@ Block distracting websites and apps during focus sessions — and, in strict mod
 </div>
 
 > **Status:** early development. Nothing is released yet — see the [roadmap](docs/roadmap.md).
+
+<p align="center">
+  <img src="docs/assets/readme/timer.png" alt="Timer screen at rest: a 25:00 ring, the blocklist and preset selectors, the strict mode toggle, a Start focus button and today's totals." width="49%">
+  <img src="docs/assets/readme/strict-session.png" alt="Active strict session: a lock banner, the 14:32 ring, disabled Pause and Stop buttons, and the sites and apps blocked this session." width="49%">
+</p>
+
+<p align="center"><em>Design preview — the app is still in development, so the final screens may differ. All screens are in <a href="docs/ui-stack.md#mockup-images">docs/ui-stack.md</a>.</em></p>
 
 ## Features (MVP, Windows)
 
@@ -53,3 +60,5 @@ Licensed under either of
 at your option.
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
+
+The Keitora name and logo are not covered by these licenses.
